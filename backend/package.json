@@ -1,0 +1,34 @@
+{
+  "name": "call-calendar-backend",
+  "private": true,
+  "type": "module",
+  "packageManager": "pnpm@10.11.0",
+  "engines": {
+    "node": ">=24.12.0 <25",
+    "pnpm": "10.11.0"
+  },
+  "scripts": {
+    "generate:openapi": "tsp compile api",
+    "generate:server": "orval --config orval.config.ts",
+    "generate": "pnpm run generate:openapi && pnpm run generate:server",
+    "dev": "pnpm run generate && tsx watch src/index.ts",
+    "typecheck": "tsc --noEmit",
+    "build": "pnpm run generate && tsc",
+    "start": "node dist/index.js"
+  },
+  "dependencies": {
+    "@hono/node-server": "2.1.5",
+    "@hono/zod-validator": "0.9.1",
+    "hono": "4.13.16",
+    "zod": "4.6.7"
+  },
+  "devDependencies": {
+    "@types/node": "24.19.2",
+    "@typespec/compiler": "1.17.0",
+    "@typespec/http": "1.17.0",
+    "@typespec/openapi3": "1.17.0",
+    "orval": "8.46.0",
+    "tsx": "4.23.0",
+    "typescript": "6.0.3"
+  }
+}

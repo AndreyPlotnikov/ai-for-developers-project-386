@@ -56,20 +56,54 @@
 
 ## Стек
 
-- Разное
+- Бекенд: TypeScript 6.0.3, Node.js 24.12.0, Hono 4.13.16.
+- Контракт: TypeSpec 1.17.0 → OpenAPI 3.0.0 → Orval 8.46.0 → маршруты, типы и Zod-валидаторы Hono.
+- Пакетный менеджер: pnpm 10.11.0. Зависимости и lockfile находятся в `backend/`.
+
+[Сравнение вариантов и принятое решение](docs/research/backend-selection.md).
 
 ## Установка
 
-<!-- Опишите установку: клонирование, зависимости, переменные окружения -->
+Нужны Node.js **24.12.0** и pnpm **10.11.0**. Версия Node записана в `backend/.node-version`, версия pnpm — в `backend/package.json`. Например, pnpm можно установить командой `npm install --global pnpm@10.11.0`.
 
 ```bash
 git clone https://github.com/AndreyPlotnikov/ai-for-developers-project-386.git
 cd ai-for-developers-project-386
+pnpm --dir backend install --frozen-lockfile
 ```
 
 ## Использование
 
-<!-- Добавьте примеры запуска и запись asciinema — именно это смотрит работодатель -->
+Сейчас реализован каркас бекенда с техническим endpoint `/health`.
+
+```bash
+pnpm --dir backend dev
+```
+
+Проверка в другом терминале:
+
+```bash
+curl --fail http://127.0.0.1:3000/health
+# {"status":"ok"}
+```
+
+Сборка и запуск собранного приложения:
+
+```bash
+pnpm --dir backend build
+pnpm --dir backend start
+```
+
+`dev` и `build` сначала генерируют OpenAPI и сервер из TypeSpec. После изменения контракта перезапустите `dev` или выполните генерацию в другом терминале:
+
+```bash
+pnpm --dir backend generate
+pnpm --dir backend typecheck
+```
+
+Переменные окружения: `HOST` (по умолчанию `127.0.0.1`) и `PORT` (по умолчанию `3000`). Пример: `PORT=3001 pnpm --dir backend start`.
+
+[Устройство бекенда и правила генерации](backend/README.md).
 
 ---
 
