@@ -19,16 +19,16 @@ pnpm dev
 curl --fail http://127.0.0.1:3000/health
 ```
 
-| Команда | Назначение |
-| --- | --- |
-| `pnpm generate` | TypeSpec → OpenAPI → сервер Hono |
-| `pnpm generate:openapi` | Только TypeSpec → OpenAPI |
-| `pnpm generate:server` | Только OpenAPI → Orval, после генерации OpenAPI |
-| `pnpm dev` | Генерация и запуск с перезапуском при изменении TypeScript |
-| `pnpm test` | Запуск тестов Vitest |
-| `pnpm typecheck` | Проверка TypeScript без сборки |
-| `pnpm build` | Генерация и компиляция в `dist/` |
-| `pnpm start` | Запуск уже собранного `dist/index.js` |
+| Команда                 | Назначение                                                 |
+| ----------------------- | ---------------------------------------------------------- |
+| `pnpm generate`         | TypeSpec → OpenAPI → сервер Hono                           |
+| `pnpm generate:openapi` | Только TypeSpec → OpenAPI                                  |
+| `pnpm generate:server`  | Только OpenAPI → Orval, после генерации OpenAPI            |
+| `pnpm dev`              | Генерация и запуск с перезапуском при изменении TypeScript |
+| `pnpm test`             | Запуск тестов Vitest                                       |
+| `pnpm typecheck`        | Проверка TypeScript без сборки                             |
+| `pnpm build`            | Генерация и компиляция в `dist/`                           |
+| `pnpm start`            | Запуск уже собранного `dist/index.js`                      |
 
 Из корня репозитория используйте `pnpm --dir backend <команда>`. `HOST` по умолчанию равен `127.0.0.1`, `PORT` — `3000`. Для другого порта: `PORT=3001 pnpm start`. Для внешнего доступа можно явно задать `HOST=0.0.0.0`.
 

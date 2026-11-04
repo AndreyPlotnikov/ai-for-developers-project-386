@@ -4,17 +4,15 @@
  * Call Calendar API
  * OpenAPI spec version: 0.0.0
  */
-import { createFactory } from 'hono/factory';
-import { zValidator } from '../generated/api.validator.js';
-import type { HealthContext } from '../generated/api.context.js';
-import {
-HealthResponse
-} from '../generated/api.zod.js'
+import { createFactory } from "hono/factory";
+import { zValidator } from "../generated/api.validator.js";
+import type { HealthContext } from "../generated/api.context.js";
+import { HealthResponse } from "../generated/api.zod.js";
 
 const factory = createFactory();
 export const healthHandlers = factory.createHandlers(
-zValidator('response', HealthResponse),
-async (c: HealthContext) => {
-    return c.json({ status: 'ok' });
+  zValidator("response", HealthResponse),
+  async (c: HealthContext) => {
+    return c.json({ status: "ok" });
   },
 );

@@ -1,0 +1,7 @@
+{
+  "ignorePatterns": [
+    "backend/src/generated/**",
+    "frontend/src/generated/**",
+    "backend/api/generated/**"
+  ]
+}

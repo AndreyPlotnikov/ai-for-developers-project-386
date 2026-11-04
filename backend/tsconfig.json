@@ -4,9 +4,7 @@
     "module": "NodeNext",
     "strict": true,
     "verbatimModuleSyntax": true,
-    "types": [
-      "node"
-    ],
+    "types": ["node"],
     "rootDir": "./src",
     "outDir": "./dist",
     "noEmitOnError": true
