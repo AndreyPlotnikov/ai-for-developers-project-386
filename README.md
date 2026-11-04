@@ -56,7 +56,7 @@
 
 ## Стек
 
-- Бекенд: TypeScript 6.0.3, Node.js 24.12.0, Hono 4.13.16.
+- Бекенд: TypeScript 6.0.3, Node.js 26.13.0, Hono 4.13.16.
 - Контракт: TypeSpec 1.17.0 → OpenAPI 3.0.0 → Orval 8.46.0 → маршруты, типы и Zod-валидаторы Hono.
 - Фронтенд: React 19.3.1, TypeScript 7.0.2, Vite 8.3.5, Mantine 9.7.5.
 - Пакетный менеджер: pnpm 10.11.0. Зависимости и lockfile находятся отдельно в `backend/` и `frontend/`.
@@ -65,13 +65,32 @@
 
 ## Установка
 
-Нужны Node.js **24.12.0** и pnpm **10.11.0**. Версия Node записана в `backend/.node-version`, версия pnpm — в `backend/package.json`. Например, pnpm можно установить командой `npm install --global pnpm@10.11.0`.
+Установите [mise](https://mise.jdx.dev/getting-started.html). Версии Node.js, pnpm, hk и pitchfork зафиксированы в `mise.toml`. На Intel macOS для сборки hk и pitchfork дополнительно нужны Rust и Cargo.
 
 ```bash
 git clone https://github.com/AndreyPlotnikov/ai-for-developers-project-386.git
 cd ai-for-developers-project-386
-pnpm --dir backend install --frozen-lockfile
-pnpm --dir frontend install --frozen-lockfile
+mise install
+mise run setup
+```
+
+`setup` устанавливает зависимости по lockfile и Git-хук pre-commit. Для установки только зависимостей используйте `mise run install`. Запускайте команды через `mise exec --`, если mise не активирован в оболочке.
+
+## Проверки
+
+```bash
+mise run check
+```
+
+Команда проверяет линтер и форматирование обоих приложений, типы и тесты бекенда, а также сборку фронтенда. Она же запускается в pre-commit и в GitHub Actions на каждый push и pull request.
+
+Фоновые серверы можно запустить и остановить через mise:
+
+```bash
+mise daemons start
+mise daemons status
+mise daemons logs
+mise daemons stop
 ```
 
 ## Использование

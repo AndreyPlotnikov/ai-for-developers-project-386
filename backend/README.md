@@ -6,7 +6,7 @@ TypeScript + Hono на Node.js, контракт TypeSpec и генерация 
 
 ## Запуск
 
-Нужны Node.js 24.12.0 (`.node-version`) и pnpm 10.11.0 (`packageManager`). Команды из этого каталога:
+Версии Node.js и pnpm зафиксированы в корневом `mise.toml`. Установка описана в [README проекта](../README.md). Команды из этого каталога:
 
 ```bash
 pnpm install --frozen-lockfile

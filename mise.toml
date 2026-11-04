@@ -1,0 +1,43 @@
+min_version = "2026.10.25"
+
+[settings]
+experimental = true
+
+[tools]
+node = "26.13.0"
+pnpm = "10.11.0"
+hk = { version = "2.11.1", os = ["linux", "macos/arm64", "windows"] }
+pitchfork = { version = "2.29.0", os = ["linux", "macos/arm64", "windows"] }
+"cargo:hk" = { version = "2.11.1", os = ["macos/x64"] }
+"cargo:pitchfork-cli" = { version = "2.29.0", os = ["macos/x64"] }
+
+[tasks.install]
+description = "Install backend and frontend dependencies"
+run = [
+  "pnpm --dir backend install --frozen-lockfile",
+  "pnpm --dir frontend install --frozen-lockfile",
+]
+
+[tasks.setup]
+description = "Install dependencies and repository Git hooks"
+run = ["mise run install", "hk install --mise"]
+
+[tasks.check]
+description = "Run all project checks"
+run = [
+  "pnpm --dir backend lint",
+  "pnpm --dir backend format:check",
+  "pnpm --dir backend typecheck",
+  "pnpm --dir backend test",
+  "pnpm --dir frontend lint",
+  "pnpm --dir frontend format:check",
+  "pnpm --dir frontend build",
+]
+
+[daemons.backend]
+run = "exec pnpm --dir backend dev"
+ready_cmd = "curl -fsS http://127.0.0.1:3000/health > /dev/null"
+
+[daemons.frontend]
+run = "exec pnpm --dir frontend exec vite --host 127.0.0.1 --strictPort"
+ready_cmd = "curl -fsS http://127.0.0.1:5173/ > /dev/null"
