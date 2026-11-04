@@ -25,6 +25,7 @@ curl --fail http://127.0.0.1:3000/health
 | `pnpm generate:openapi` | Только TypeSpec → OpenAPI |
 | `pnpm generate:server` | Только OpenAPI → Orval, после генерации OpenAPI |
 | `pnpm dev` | Генерация и запуск с перезапуском при изменении TypeScript |
+| `pnpm test` | Запуск тестов Vitest |
 | `pnpm typecheck` | Проверка TypeScript без сборки |
 | `pnpm build` | Генерация и компиляция в `dist/` |
 | `pnpm start` | Запуск уже собранного `dist/index.js` |
@@ -51,4 +52,4 @@ src/index.ts                   запуск и остановка Node-серв�
 
 Прямые зависимости закреплены точными версиями, транзитивные — `pnpm-lock.yaml`. TypeScript 6.0.3 выбран для совместимости с генераторами, использующими compiler API. `pnpm-workspace.yaml` разрешает install script только для `esbuild`, нужного инструментам разработки. В `.npmrc` указан публичный npm registry и включена проверка версий окружения.
 
-Клиентский SDK генерируется из того же OpenAPI командой `pnpm --dir frontend generate` из корня проекта; здесь Orval генерирует сервер. Реализации бронирования, БД и автоматического тестового runner пока нет.
+Дымовой тест обращается к `GET /health` через `app.request()` без запуска сетевого сервера. Клиентский SDK генерируется из того же OpenAPI командой `pnpm --dir frontend generate` из корня проекта; здесь Orval генерирует сервер. Реализации бронирования и БД пока нет.
