@@ -58,7 +58,8 @@
 
 - Бекенд: TypeScript 6.0.3, Node.js 24.12.0, Hono 4.13.16.
 - Контракт: TypeSpec 1.17.0 → OpenAPI 3.0.0 → Orval 8.46.0 → маршруты, типы и Zod-валидаторы Hono.
-- Пакетный менеджер: pnpm 10.11.0. Зависимости и lockfile находятся в `backend/`.
+- Фронтенд: React 19.3.1, TypeScript 7.0.2, Vite 8.3.5, Mantine 9.7.5.
+- Пакетный менеджер: pnpm 10.11.0. Зависимости и lockfile находятся отдельно в `backend/` и `frontend/`.
 
 [Сравнение вариантов и принятое решение](docs/research/backend-selection.md).
 
@@ -70,17 +71,24 @@
 git clone https://github.com/AndreyPlotnikov/ai-for-developers-project-386.git
 cd ai-for-developers-project-386
 pnpm --dir backend install --frozen-lockfile
+pnpm --dir frontend install --frozen-lockfile
 ```
 
 ## Использование
 
-Сейчас реализован каркас бекенда с техническим endpoint `/health`.
+Сейчас реализован каркас приложения с техническим endpoint `/health`.
 
 ```bash
 pnpm --dir backend dev
 ```
 
-Проверка в другом терминале:
+В другом терминале запустите фронтенд и откройте адрес, показанный Vite (обычно http://localhost:5173):
+
+```bash
+pnpm --dir frontend dev
+```
+
+Страница показывает состояние соединения с бекендом. Vite перенаправляет `/health` на `127.0.0.1:3000`. Проверка API из терминала:
 
 ```bash
 curl --fail http://127.0.0.1:3000/health
@@ -102,6 +110,15 @@ pnpm --dir backend typecheck
 ```
 
 Переменные окружения: `HOST` (по умолчанию `127.0.0.1`) и `PORT` (по умолчанию `3000`). Пример: `PORT=3001 pnpm --dir backend start`.
+
+Сборка фронтенда и отдельная генерация SDK (для обеих команд нужны установленные зависимости бекенда):
+
+```bash
+pnpm --dir frontend build
+pnpm --dir frontend generate
+```
+
+Генерация сначала обновляет OpenAPI из TypeSpec, затем Orval создаёт клиент в `frontend/src/generated/`. Сгенерированные файлы не редактируются вручную. Dev-прокси предназначен для локальной разработки; для опубликованной сборки потребуется настроить маршрутизацию `/health` к бекенду.
 
 [Устройство бекенда и правила генерации](backend/README.md).
 
