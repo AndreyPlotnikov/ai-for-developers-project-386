@@ -1,8 +1,10 @@
 openapi: 3.0.0
 info:
   title: Call Calendar API
+  description: API для проверки состояния приложения Call Calendar.
   version: 0.0.0
-tags: []
+tags:
+  - name: Health
 paths:
   /health:
     get:
@@ -16,6 +18,10 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Health'
+              example:
+                status: ok
+      tags:
+        - Health
 components:
   schemas:
     Health:
@@ -27,3 +33,12 @@ components:
           type: string
           enum:
             - ok
+          description: Состояние доступного приложения.
+          example: ok
+      description: Состояние приложения.
+      example:
+        status: ok
+servers:
+  - url: /
+    description: Текущий сервер приложения
+    variables: {}

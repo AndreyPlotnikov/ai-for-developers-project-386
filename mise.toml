@@ -6,6 +6,14 @@ experimental = true
 [tools]
 node = "26.13.0"
 pnpm = "10.11.0"
+python = "3.14.0"
+uv = "0.13.7"
+"pipx:check-jsonschema" = { version = "0.39.0", depends = ["python", "uv"] }
+jactionlint = "2.4.0"
+shellcheck = "0.11.0"
+betterleaks = "1.10.0"
+osv-scanner = "2.7.0"
+vacuum = "0.36.2"
 hk = { version = "2.11.1", os = ["linux", "macos/arm64", "windows"] }
 pitchfork = { version = "2.29.0", os = ["linux", "macos/arm64", "windows"] }
 "cargo:hk" = { version = "2.11.1", os = ["macos/x64"] }
@@ -31,7 +39,19 @@ run = [
   "pnpm --dir backend test",
   "pnpm --dir frontend lint",
   "pnpm --dir frontend format:check",
+  "node scripts/check-generated.mjs",
   "pnpm --dir frontend build",
+  "pnpm --dir backend exec knip --directory . --no-progress",
+  "pnpm --dir backend exec knip --directory ../frontend --no-progress",
+  "cd backend && node_modules/.bin/depcruise --config ../.dependency-cruiser.cjs src",
+  "cd frontend && ../backend/node_modules/.bin/depcruise --config ../.dependency-cruiser.cjs src",
+  "jactionlint",
+  "betterleaks git --redact --no-banner",
+  "osv-scanner scan source -L backend/pnpm-lock.yaml -L frontend/pnpm-lock.yaml",
+  "check-jsonschema --builtin-schema vendor.github-workflows .github/workflows/check.yml .github/workflows/hexlet-check.yml",
+  "check-jsonschema --builtin-schema vendor.renovate renovate.json",
+  "check-jsonschema --schemafile backend/node_modules/knip/schema.json backend/knip.json frontend/knip.json",
+  "vacuum lint backend/api/generated/openapi.yaml --no-style",
 ]
 
 [daemons.backend]

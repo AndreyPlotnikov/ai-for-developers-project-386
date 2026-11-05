@@ -1,2 +1,6 @@
 onlyBuiltDependencies:
   - esbuild
+
+overrides:
+  # @scalar/json-magic pins a vulnerable undici; stay within its 7.x major.
+  undici@7.24.4: 7.30.1

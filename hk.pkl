@@ -3,9 +3,27 @@ amends "package://github.com/jdx/hk/releases/download/v2.11.1/hk@2.11.1#/Config.
 hooks {
   ["pre-commit"] {
     steps {
-      ["check"] {
-        check = "mise run check"
+      ["secrets"] { check = "betterleaks git --staged --redact --no-banner" }
+      ["lint"] {
+        glob = List("backend/**/*.ts", "frontend/**/*.ts", "frontend/**/*.tsx", "frontend/**/*.js", "frontend/**/*.cjs", "backend/**/*.cjs")
+        exclude = List("backend/src/generated/**", "frontend/src/generated/**")
+        check = "backend/node_modules/.bin/oxlint --deny-warnings {{files}}"
       }
+      ["format"] {
+        glob = List("backend/**/*.ts", "frontend/**/*.ts", "frontend/**/*.tsx", "frontend/**/*.js", "frontend/**/*.cjs", "backend/**/*.cjs")
+        exclude = List("backend/src/generated/**", "frontend/src/generated/**")
+        check = "backend/node_modules/.bin/oxfmt --check {{files}}"
+      }
+    }
+  }
+  ["commit-msg"] {
+    steps {
+      ["commitlint"] { check = "backend/node_modules/.bin/commitlint --config backend/commitlint.config.cjs --edit {{commit_msg_file}}" }
+    }
+  }
+  ["pre-push"] {
+    steps {
+      ["check"] { check = "mise run check" }
     }
   }
 }
