@@ -5,6 +5,7 @@ info:
   version: 0.0.0
 tags:
   - name: Health
+  - name: Owner
   - name: Meeting types
 paths:
   /api/meeting-types:
@@ -231,6 +232,23 @@ paths:
             schema:
               $ref: '#/components/schemas/BookingInput'
         description: Момент начала, имя и email гостя. Пробелы по краям имени и email удаляются.
+  /api/owner/meetings:
+    get:
+      operationId: listUpcomingMeetings
+      description: Получить предстоящие встречи владельца.
+      parameters: []
+      responses:
+        '200':
+          description: The request has succeeded.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UpcomingMeetings'
+              example:
+                timeZone: Europe/Moscow
+                meetings: []
+      tags:
+        - Owner
   /health:
     get:
       operationId: health
@@ -641,6 +659,60 @@ components:
           description: Сообщение для гостя.
           example: Выбранное время больше недоступно. Выберите другой слот.
       description: Выбранный слот больше недоступен.
+    UpcomingMeeting:
+      type: object
+      required:
+        - id
+        - meetingTypeName
+        - guestName
+        - guestEmail
+        - startsAt
+        - endsAt
+      properties:
+        id:
+          type: string
+          description: Уникальный идентификатор встречи.
+          example: f9ae5308-2bc7-4590-b3cb-4f265025f281
+        meetingTypeName:
+          type: string
+          description: Название типа встречи на момент записи.
+          example: Консультация
+        guestName:
+          type: string
+          description: Имя гостя.
+          example: Алекс
+        guestEmail:
+          type: string
+          description: Email гостя.
+          example: a@b.c
+        startsAt:
+          type: string
+          format: date-time
+          description: Момент начала встречи.
+          example: '2026-02-02T06:15:00Z'
+        endsAt:
+          type: string
+          format: date-time
+          description: Момент окончания встречи.
+          example: '2026-02-02T06:45:00Z'
+      description: Сохранённая встреча в списке владельца.
+    UpcomingMeetings:
+      type: object
+      required:
+        - timeZone
+        - meetings
+      properties:
+        timeZone:
+          type: string
+          description: Текущий именованный часовой пояс владельца.
+          example: Europe/Moscow
+        meetings:
+          type: array
+          items:
+            $ref: '#/components/schemas/UpcomingMeeting'
+          description: Встречи, начало которых строго позже текущего момента, от ближайшей к дальней.
+          example: []
+      description: Предстоящие встречи всех типов.
 servers:
   - url: /
     description: Текущий сервер приложения

@@ -1,7 +1,12 @@
 import { randomUUID } from "node:crypto";
 import type { DatabaseSync } from "node:sqlite";
 import type { WorkingCalendar } from "./availability.js";
-import type { BookingInput, Meeting, MeetingTypeAvailability } from "./generated/api.schemas.js";
+import type {
+  BookingInput,
+  Meeting,
+  MeetingTypeAvailability,
+  UpcomingMeetings,
+} from "./generated/api.schemas.js";
 import { MeetingTypes, ownerName } from "./meeting-types.js";
 
 type BookingResult =
@@ -28,6 +33,7 @@ export class Meetings {
         timeZone TEXT NOT NULL
       ) STRICT;
 
+      CREATE INDEX IF NOT EXISTS meetings_starts_at ON meetings(startsAt);
       CREATE INDEX IF NOT EXISTS meetings_ends_at ON meetings(endsAt);
 
       CREATE TABLE IF NOT EXISTS booking_attempts (
@@ -98,6 +104,17 @@ export class Meetings {
       console.error("Could not save booking", error);
       return { status: error instanceof BookingRolledBack ? "not_saved" : "unknown" };
     }
+  }
+
+  listUpcoming(): UpcomingMeetings {
+    const rows = this.database
+      .prepare("SELECT * FROM meetings WHERE startsAt > ? ORDER BY startsAt")
+      .all(this.now().getTime());
+    const meetings = rows.map((row) => {
+      const { id, meetingTypeName, guestName, guestEmail, startsAt, endsAt } = readMeeting(row);
+      return { id, meetingTypeName, guestName, guestEmail, startsAt, endsAt };
+    });
+    return { timeZone: this.calendar.timeZone, meetings };
   }
 
   freeSlots(durationMinutes: number): MeetingTypeAvailability {

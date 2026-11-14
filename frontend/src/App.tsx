@@ -1,6 +1,7 @@
 import "./App.css";
 import { MeetingTypePage, MeetingTypesPage } from "./MeetingTypes";
 import { NewMeetingType } from "./NewMeetingType";
+import { UpcomingMeetingsPage } from "./UpcomingMeetings";
 
 export default function App() {
   const path = window.location.pathname.replace(/\/$/, "");
@@ -10,6 +11,7 @@ export default function App() {
   if (detail) page = <MeetingTypePage id={detail[1]} />;
   if (path === "/admin/meeting-types") page = <MeetingTypesPage ownerView />;
   if (path === "/admin/meeting-types/new") page = <NewMeetingType />;
+  if (path === "/admin/meetings") page = <UpcomingMeetingsPage />;
 
   return (
     <div className="page">

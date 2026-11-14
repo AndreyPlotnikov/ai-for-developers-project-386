@@ -166,6 +166,19 @@ export const MeetingTypesCreateBookingResponse = zod.object({
 }).describe('Подтверждение сохранённой встречи.')
 
 
+export const ListUpcomingMeetingsResponse = zod.object({
+  "timeZone": zod.string().describe('Текущий именованный часовой пояс владельца.'),
+  "meetings": zod.array(zod.object({
+  "id": zod.string().describe('Уникальный идентификатор встречи.'),
+  "meetingTypeName": zod.string().describe('Название типа встречи на момент записи.'),
+  "guestName": zod.string().describe('Имя гостя.'),
+  "guestEmail": zod.string().describe('Email гостя.'),
+  "startsAt": zod.iso.datetime({"offset":true}).describe('Момент начала встречи.'),
+  "endsAt": zod.iso.datetime({"offset":true}).describe('Момент окончания встречи.')
+}).describe('Сохранённая встреча в списке владельца.')).describe('Встречи, начало которых строго позже текущего момента, от ближайшей к дальней.')
+}).describe('Предстоящие встречи всех типов.')
+
+
 export const HealthResponse = zod.object({
   "status": zod.enum(['ok']).describe('Состояние доступного приложения.')
 }).describe('Состояние приложения.')

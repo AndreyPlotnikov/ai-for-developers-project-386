@@ -350,6 +350,34 @@ export interface SlotUnavailable {
   message: string;
 }
 
+/**
+ * Сохранённая встреча в списке владельца.
+ */
+export interface UpcomingMeeting {
+  /** Уникальный идентификатор встречи. */
+  id: string;
+  /** Название типа встречи на момент записи. */
+  meetingTypeName: string;
+  /** Имя гостя. */
+  guestName: string;
+  /** Email гостя. */
+  guestEmail: string;
+  /** Момент начала встречи. */
+  startsAt: string;
+  /** Момент окончания встречи. */
+  endsAt: string;
+}
+
+/**
+ * Предстоящие встречи всех типов.
+ */
+export interface UpcomingMeetings {
+  /** Текущий именованный часовой пояс владельца. */
+  timeZone: string;
+  /** Встречи, начало которых строго позже текущего момента, от ближайшей к дальней. */
+  meetings: UpcomingMeeting[];
+}
+
 export type meetingTypesListMeetingTypesResponse200 = {
   data: MeetingTypeCatalog
   status: 200
@@ -698,6 +726,49 @@ const res = await fetch(getMeetingTypesCreateBookingUrl(id),
 
   const data: meetingTypesCreateBookingResponse['data'] = body ? JSON.parse(body) : {}
   return { data, status: res.status, headers: res.headers } as meetingTypesCreateBookingResponse
+}
+
+
+
+export type listUpcomingMeetingsResponse200 = {
+  data: UpcomingMeetings
+  status: 200
+}
+
+export type listUpcomingMeetingsResponseSuccess = (listUpcomingMeetingsResponse200) & {
+  headers: Headers;
+};
+;
+
+export type listUpcomingMeetingsResponse = (listUpcomingMeetingsResponseSuccess)
+
+export const getListUpcomingMeetingsUrl = () => {
+
+
+
+
+  return `/api/owner/meetings`
+}
+
+/**
+ * Получить предстоящие встречи владельца.
+ */
+export const listUpcomingMeetings = async ( options?: RequestInit): Promise<listUpcomingMeetingsResponse> => {
+
+  const res = await fetch(getListUpcomingMeetingsUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+)
+
+
+  const body = [204, 205, 304].includes(res.status) ? null : await res.text();
+
+  const data: listUpcomingMeetingsResponse['data'] = body ? JSON.parse(body) : {}
+  return { data, status: res.status, headers: res.headers } as listUpcomingMeetingsResponse
 }
 
 

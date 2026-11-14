@@ -350,3 +350,31 @@ export interface SlotUnavailable {
   message: string;
 }
 
+/**
+ * Сохранённая встреча в списке владельца.
+ */
+export interface UpcomingMeeting {
+  /** Уникальный идентификатор встречи. */
+  id: string;
+  /** Название типа встречи на момент записи. */
+  meetingTypeName: string;
+  /** Имя гостя. */
+  guestName: string;
+  /** Email гостя. */
+  guestEmail: string;
+  /** Момент начала встречи. */
+  startsAt: string;
+  /** Момент окончания встречи. */
+  endsAt: string;
+}
+
+/**
+ * Предстоящие встречи всех типов.
+ */
+export interface UpcomingMeetings {
+  /** Текущий именованный часовой пояс владельца. */
+  timeZone: string;
+  /** Встречи, начало которых строго позже текущего момента, от ближайшей к дальней. */
+  meetings: UpcomingMeeting[];
+}
+

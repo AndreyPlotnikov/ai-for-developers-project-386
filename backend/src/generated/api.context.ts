@@ -35,4 +35,5 @@ export type MeetingTypesCreateBookingContext<E extends Env = any> = Context<E, '
  },json: BookingInput, }, out: { param: {
  id: string,
  },json: BookingInput, } }>
+export type ListUpcomingMeetingsContext<E extends Env = any> = Context<E, '/api/owner/meetings'>
 export type HealthContext<E extends Env = any> = Context<E, '/health'>

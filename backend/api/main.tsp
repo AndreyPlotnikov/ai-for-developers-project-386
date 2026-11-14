@@ -364,3 +364,42 @@ interface MeetingTypes {
     | { @statusCode statusCode: 409; @body error: SlotUnavailable; }
     | { @statusCode statusCode: 503; @body error: BookingNotSaved | BookingAttemptUnknown; };
 }
+
+/** Сохранённая встреча в списке владельца. */
+model UpcomingMeeting {
+  /** Уникальный идентификатор встречи. */
+  @example("f9ae5308-2bc7-4590-b3cb-4f265025f281")
+  id: string;
+
+  /** Название типа встречи на момент записи. */
+  @example("Консультация")
+  meetingTypeName: string;
+
+  /** Имя гостя. */
+  @example("Алекс")
+  guestName: string;
+
+  /** Email гостя. */
+  @example("a@b.c")
+  guestEmail: string;
+
+  ...AvailabilitySlot;
+}
+
+/** Предстоящие встречи всех типов. */
+model UpcomingMeetings {
+  /** Текущий именованный часовой пояс владельца. */
+  @example("Europe/Moscow")
+  timeZone: string;
+
+  /** Встречи, начало которых строго позже текущего момента, от ближайшей к дальней. */
+  @example(#[])
+  meetings: UpcomingMeeting[];
+}
+
+/** Получить предстоящие встречи владельца. */
+@tag("Owner")
+@opExample(#{ returnType: #{ timeZone: "Europe/Moscow", meetings: #[] } })
+@route("/api/owner/meetings")
+@get
+op listUpcomingMeetings(): UpcomingMeetings;
