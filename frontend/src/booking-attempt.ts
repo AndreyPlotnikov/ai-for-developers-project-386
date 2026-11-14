@@ -19,10 +19,21 @@ export function readBookingAttempt() {
   }
 }
 
-export function storeBookingAttempt(attempt: BookingAttempt) {
-  window.localStorage.setItem(storageKey, JSON.stringify(attempt));
+function updateStoredAttempt<T>(update: () => T): Promise<T> {
+  if (navigator.locks) return navigator.locks.request(storageKey, update);
+  return Promise.resolve().then(update);
+}
+
+export function claimBookingAttempt(attempt: BookingAttempt) {
+  return updateStoredAttempt(() => {
+    if (readBookingAttempt()) return false;
+    window.localStorage.setItem(storageKey, JSON.stringify(attempt));
+    return true;
+  });
 }
 
 export function clearBookingAttempt(id: string) {
-  if (readBookingAttempt()?.id === id) window.localStorage.removeItem(storageKey);
+  return updateStoredAttempt(() => {
+    if (readBookingAttempt()?.id === id) window.localStorage.removeItem(storageKey);
+  });
 }

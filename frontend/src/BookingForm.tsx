@@ -1,10 +1,5 @@
 import { useEffect, useRef, useState, type FormEvent } from "react";
-import {
-  clearBookingAttempt,
-  readBookingAttempt,
-  storeBookingAttempt,
-  type BookingAttempt,
-} from "./booking-attempt";
+import { claimBookingAttempt, clearBookingAttempt, type BookingAttempt } from "./booking-attempt";
 import { formatMeetingTime } from "./calendar-time";
 import {
   meetingTypesCheckBookingAttempt,
@@ -49,6 +44,7 @@ export function BookingForm({
   const [notice, setNotice] = useState("");
   const [meeting, setMeeting] = useState<Meeting>();
   const attempt = useRef(initialAttempt);
+  const preparing = useRef(false);
   const checking = useRef(false);
   const form = useRef<HTMLFormElement>(null);
   const submitButton = useRef<HTMLButtonElement>(null);
@@ -81,14 +77,14 @@ export function BookingForm({
     setErrors((current) => ({ ...current, [field]: error }));
   }
 
-  function finishAttempt() {
-    if (attempt.current) clearBookingAttempt(attempt.current.id);
+  async function finishAttempt() {
+    if (attempt.current) await clearBookingAttempt(attempt.current.id);
     attempt.current = undefined;
     onLock(false);
   }
 
-  function confirm(savedMeeting: Meeting) {
-    finishAttempt();
+  async function confirm(savedMeeting: Meeting) {
+    await finishAttempt();
     setMeeting(savedMeeting);
     onConfirmed();
   }
@@ -102,15 +98,12 @@ export function BookingForm({
 
   async function save(current: BookingAttempt, input: BookingInput) {
     attempt.current = current;
-    onLock(true);
-    setStatus("saving");
-    setNotice("");
     try {
       const response = await meetingTypesCreateBooking(current.meetingTypeId, input, {
         headers: { "Idempotency-Key": current.id },
       });
       if (response.status === 201) {
-        confirm(response.data);
+        await confirm(response.data);
         return;
       }
       if (response.status === 400) {
@@ -129,7 +122,7 @@ export function BookingForm({
         setStatus("unknown");
         return;
       }
-      finishAttempt();
+      await finishAttempt();
     } catch {
       setStatus("unknown");
     }
@@ -143,9 +136,9 @@ export function BookingForm({
     try {
       const response = await meetingTypesCheckBookingAttempt(current.id);
       if (response.status === 200 && response.data.status === "saved") {
-        confirm(response.data.meeting);
+        await confirm(response.data.meeting);
       } else if (response.status === 200 && response.data.status === "not_saved") {
-        finishAttempt();
+        await finishAttempt();
         chooseAnotherSlot("Встреча не сохранена. Выберите время и подтвердите запись.");
       } else {
         setStatus("unknown");
@@ -157,13 +150,9 @@ export function BookingForm({
     }
   }
 
-  function submit(event: FormEvent<HTMLFormElement>) {
+  async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    if (attempt.current || !ready) return;
-    if (readBookingAttempt()) {
-      window.location.reload();
-      return;
-    }
+    if (attempt.current || preparing.current || !ready) return;
     const result = MeetingTypesCreateBookingBody.safeParse({
       startsAt,
       guestName: values.guestName.trim(),
@@ -180,6 +169,10 @@ export function BookingForm({
       return;
     }
     setErrors({});
+    preparing.current = true;
+    onLock(true);
+    setStatus("saving");
+    setNotice("");
     try {
       const current = {
         id: window.crypto.randomUUID(),
@@ -187,11 +180,17 @@ export function BookingForm({
         startsAt: result.data.startsAt,
         values,
       };
-      storeBookingAttempt(current);
+      if (!(await claimBookingAttempt(current))) {
+        window.location.reload();
+        return;
+      }
       void save(current, result.data);
     } catch {
+      onLock(false);
       setNotice("Не удалось подготовить сохранение. Повторите попытку.");
       setStatus("failed");
+    } finally {
+      preparing.current = false;
     }
   }
 

@@ -116,15 +116,19 @@ export function BookingCalendar({
                     }}
                   >
                     {formatCalendarDate(date)}
+                    {date === selectedDate && <span aria-hidden="true"> ✓</span>}
                     {slots.length === 0 && <small>Нет времени</small>}
                   </button>
                 </li>
               ))}
             </ul>
             <div role="status" className="calendar-status">
-              {day?.slots.length === 0 &&
-                "На эту дату нет свободного времени. Выберите другую дату."}
-              {!day && "Нет свободного времени на ближайшие 14 дней."}
+              {day?.slots.length === 0 && (
+                <p>На эту дату нет свободного времени. Выберите другую дату.</p>
+              )}
+              {data.days.every((day) => day.slots.length === 0) && (
+                <p>Нет свободного времени на ближайшие 14 дней.</p>
+              )}
             </div>
             {!!day?.slots.length && (
               <>
@@ -140,6 +144,9 @@ export function BookingCalendar({
                         onClick={() => setSelectedSlot(slot)}
                       >
                         {formatSlotTime(slot.startsAt, data.timeZone)}
+                        {selectedSlot?.startsAt === slot.startsAt && (
+                          <span aria-hidden="true"> ✓</span>
+                        )}
                       </button>
                     </li>
                   ))}

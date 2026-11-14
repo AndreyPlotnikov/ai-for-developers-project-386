@@ -51,7 +51,10 @@ test("a guest can select empty dates with the keyboard and learns when all dates
   await expect(calendar.getByText("Часовой пояс владельца: Europe/Moscow")).toBeVisible();
   const day2 = calendar.getByRole("button", { name: /(?:^|, )2 февраля/ });
   await expect(day2).toHaveAttribute("aria-pressed", "true");
-  await expect(calendar.getByRole("button", { name: "09:00", exact: true })).toBeEnabled();
+  await expect(day2.getByText("✓", { exact: true })).toBeVisible();
+  const slot = calendar.getByRole("button", { name: "09:00", exact: true });
+  await slot.press("Enter");
+  await expect(slot.getByText("✓", { exact: true })).toBeVisible();
 
   const emptyDay = calendar.getByRole("button", {
     name: /(?:^|, )3 февраля.*нет времени/i,
@@ -70,10 +73,21 @@ test("a guest can select empty dates with the keyboard and learns when all dates
     .analyze();
   expect(accessibility.violations).toEqual([]);
 
+  await day2.press("Enter");
+  await expect(slot).toBeEnabled();
   availability = dates(1);
+  await calendar.getByRole("button", { name: "Обновить доступное время" }).click();
+  await expect(calendar.getByText("Нет свободного времени на ближайшие 14 дней.")).toBeVisible();
+  await expect(day2).toHaveAttribute("aria-pressed", "true");
+  await expect(calendar.getByText(/На эту дату нет свободного времени/)).toBeVisible();
+
   await page.reload();
   await expect(calendar.getByText("Нет свободного времени на ближайшие 14 дней.")).toBeVisible();
   await expect(calendar.getByRole("button", { pressed: true })).toHaveCount(0);
+  await emptyDay.press("Enter");
+  await expect(emptyDay).toHaveAttribute("aria-pressed", "true");
+  await expect(calendar.getByText(/На эту дату нет свободного времени/)).toBeVisible();
+  await expect(calendar.getByText("Нет свободного времени на ближайшие 14 дней.")).toBeVisible();
 });
 
 test("retry retains stale dates and reselects when the chosen date leaves the window", async ({

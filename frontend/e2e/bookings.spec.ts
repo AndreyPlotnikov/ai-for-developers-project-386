@@ -219,6 +219,65 @@ test("keeps the guest's details through failed checks and asks for a new slot af
   await expect(page.getByRole("heading", { name: "Запись подтверждена" })).toBeFocused();
 });
 
+test("two tabs keep one unresolved booking attempt available for recovery", async ({
+  page,
+  context,
+}) => {
+  const otherTab = await context.newPage();
+  await serveBookingCalendar(context);
+  const bookings: string[] = [];
+  await context.route(`${typePath}/bookings`, (route) => {
+    bookings.push(route.request().headers()["idempotency-key"]);
+    return route.abort();
+  });
+  await context.route("**/api/meeting-types/booking-attempts/*/check", (route) => {
+    expect(route.request().url()).toContain(`/booking-attempts/${bookings[0]}/check`);
+    return route.fulfill({ json: { status: "saved", meeting: confirmation } });
+  });
+
+  for (const [tab, time] of [
+    [page, "10:00"],
+    [otherTab, "09:15"],
+  ] as const) {
+    await tab.goto(pagePath);
+    await tab.getByRole("button", { name: time }).click();
+    await tab.getByRole("textbox", { name: "Имя" }).fill("Алекс");
+    await tab.getByRole("textbox", { name: "Email" }).fill("a@b.c");
+  }
+
+  const release = await page.evaluateHandle(
+    () =>
+      new Promise<() => void>((acquired) => {
+        void navigator.locks.request(
+          "calendar.booking-attempt",
+          () => new Promise<void>((resolve) => acquired(resolve)),
+        );
+      }),
+  );
+  try {
+    await page.getByRole("button", { name: "Подтвердить запись" }).click();
+    await otherTab.getByRole("button", { name: "Подтвердить запись" }).click();
+    await expect
+      .poll(() =>
+        page.evaluate(async () => {
+          const { pending } = await navigator.locks.query();
+          return pending?.filter(({ name }) => name === "calendar.booking-attempt").length;
+        }),
+      )
+      .toBe(2);
+    expect(bookings).toHaveLength(0);
+  } finally {
+    await release.evaluate((unlock) => unlock());
+    await release.dispose();
+  }
+
+  const unknown = page.getByRole("alert").filter({ hasText: "Результат сохранения неизвестен." });
+  await expect(unknown).toBeVisible();
+  await otherTab.getByRole("button", { name: "Проверить результат" }).press("Enter");
+  await expect(otherTab.getByRole("heading", { name: "Запись подтверждена" })).toBeFocused();
+  expect(bookings).toHaveLength(1);
+});
+
 async function serveBookingCalendar(target: BrowserContext) {
   await target.route(typePath, (route) =>
     route.fulfill({ json: { id, name: "Знакомство", durationMinutes: 30 } }),

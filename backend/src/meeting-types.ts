@@ -5,6 +5,7 @@ import type {
   MeetingTypeAttemptResult,
   MeetingTypeInput,
 } from "./generated/api.schemas.js";
+import { withImmediateTransaction } from "./sqlite.js";
 
 export const ownerName = "Андрей Плотников";
 
@@ -51,16 +52,10 @@ export class MeetingTypes {
     attemptId: string,
     resolve: (id: string, result: MeetingTypeAttemptResult | undefined) => T,
   ): T {
-    this.database.exec("BEGIN IMMEDIATE");
-    try {
+    return withImmediateTransaction(this.database, () => {
       const id = attemptId.toLowerCase();
-      const result = resolve(id, this.getAttempt(id));
-      this.database.exec("COMMIT");
-      return result;
-    } catch (error) {
-      if (this.database.isTransaction) this.database.exec("ROLLBACK");
-      throw error;
-    }
+      return resolve(id, this.getAttempt(id));
+    });
   }
 
   private getAttempt(id: string): MeetingTypeAttemptResult | undefined {

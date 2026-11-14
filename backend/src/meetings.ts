@@ -9,6 +9,7 @@ import type {
   UpcomingMeetings,
 } from "./generated/api.schemas.js";
 import { MeetingTypes, ownerName } from "./meeting-types.js";
+import { withImmediateTransaction } from "./sqlite.js";
 
 type BookingResult =
   | { status: "saved"; meeting: Meeting }
@@ -47,7 +48,8 @@ export class Meetings {
   book(meetingTypeId: string, input: BookingInput, attemptId: string): BookingResult {
     let checkedNewAttempt = false;
     try {
-      return this.withWriteLock(
+      return withImmediateTransaction(
+        this.database,
         () => {
           const id = attemptId.toLowerCase();
           const original = this.readAttempt(id);
@@ -100,7 +102,11 @@ export class Meetings {
             .run(id, meeting.id);
           return { status: "saved", meeting: readMeeting(meeting) };
         },
-        () => checkedNewAttempt,
+        (error) => {
+          if (checkedNewAttempt) {
+            throw new BookingRolledBack("Booking write rolled back", { cause: error });
+          }
+        },
       );
     } catch (error) {
       console.error("Could not save booking", error);
@@ -109,7 +115,7 @@ export class Meetings {
   }
 
   checkAttempt(attemptId: string): BookingAttemptResult {
-    return this.withWriteLock(() => {
+    return withImmediateTransaction(this.database, () => {
       const id = attemptId.toLowerCase();
       const original = this.readAttempt(id);
       if (original) return original;
@@ -152,23 +158,6 @@ export class Meetings {
       });
     }
     return availability;
-  }
-
-  private withWriteLock<T>(operation: () => T, checkedNewAttempt?: () => boolean): T {
-    // Reserve the write lock before reading attempts or conflicts.
-    this.database.exec("BEGIN IMMEDIATE");
-    try {
-      const result = operation();
-      this.database.exec("COMMIT");
-      return result;
-    } catch (error) {
-      if (this.database.isTransaction) {
-        this.database.exec("ROLLBACK");
-        if (checkedNewAttempt?.())
-          throw new BookingRolledBack("Booking write rolled back", { cause: error });
-      }
-      throw error;
-    }
   }
 
   private readAttempt(id: string): BookingAttemptResult | undefined {

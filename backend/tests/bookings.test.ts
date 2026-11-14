@@ -1,8 +1,10 @@
 import { randomUUID } from "node:crypto";
+import { once } from "node:events";
 import { mkdtempDisposableSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { DatabaseSync } from "node:sqlite";
+import { Worker } from "node:worker_threads";
 import { expect, test } from "vitest";
 import { createApp } from "../src/app.js";
 import type { MeetingType, MeetingTypeAvailability } from "../src/generated/api.schemas.js";
@@ -32,11 +34,19 @@ function book(
   values: Record<string, unknown> = input,
   key: string = randomUUID(),
 ) {
-  return app.request(`/api/meeting-types/${id}/bookings`, {
+  return app.request(bookingPath(id), bookingRequest(values, key));
+}
+
+function bookingPath(id: string) {
+  return `/api/meeting-types/${id}/bookings`;
+}
+
+function bookingRequest(values: Record<string, unknown>, key: string) {
+  return {
     method: "POST",
     headers: { "Content-Type": "application/json", "Idempotency-Key": key },
     body: JSON.stringify(values),
-  });
+  };
 }
 
 test("saves a booking and returns the original confirmation details", async () => {
@@ -163,19 +173,87 @@ test("removes entirely and partially overlapping slots for all types and keeps t
 test("confirms exactly one of two concurrent intersecting bookings of different types", async () => {
   using directory = mkdtempDisposableSync(join(tmpdir(), "booking-race-"));
   const path = join(directory.path, "calendar.sqlite");
-  using first = new DatabaseSync(path, { timeout: 5000 });
-  using second = new DatabaseSync(path, { timeout: 5000 });
-  const app = createApp(first, options);
-  const otherApp = createApp(second, options);
+  using database = new DatabaseSync(path);
+  const app = createApp(database, options);
   const long = await createType(app, 45);
   const short = await createType(app, 15);
-
-  const results = await Promise.all([
-    book(app, long),
-    book(otherApp, short, { ...input, startsAt: "2026-02-02T06:30:00Z" }),
-  ]);
-  expect(results.map((result) => result.status).sort()).toEqual([201, 409]);
+  const start = bookingSignal();
+  const workers = [
+    bookingWorker(path, long, input, { start: start.buffer }),
+    bookingWorker(
+      path,
+      short,
+      { ...input, startsAt: "2026-02-02T06:30:00Z" },
+      { start: start.buffer },
+    ),
+  ];
+  try {
+    expect(await Promise.all(workers.map((worker) => once(worker, "message")))).toEqual([
+      ["ready"],
+      ["ready"],
+    ]);
+    const bookings = Promise.all(workers.map((worker) => once(worker, "message")));
+    signalBookingWorkers(start);
+    expect((await bookings).flat().sort()).toEqual([201, 409]);
+  } finally {
+    await Promise.all(workers.map((worker) => worker.terminate()));
+  }
 });
+
+test("reports an unknown outcome while SQLite is busy and rejects an overlap on retry", async () => {
+  using directory = mkdtempDisposableSync(join(tmpdir(), "booking-contention-"));
+  const path = join(directory.path, "calendar.sqlite");
+  using database = new DatabaseSync(path, { timeout: 0 });
+  const app = createApp(database, options);
+  const long = await createType(app, 45);
+  const short = await createType(app, 15);
+  const releaseLock = bookingSignal();
+  const worker = bookingWorker(path, long, input, { releaseLock: releaseLock.buffer });
+  const shortInput = { ...input, startsAt: "2026-02-02T06:30:00Z" };
+  const key = randomUUID();
+  try {
+    expect(await once(worker, "message")).toEqual(["validating"]);
+    const busy = await book(app, short, shortInput, key);
+    expect(busy.status).toBe(503);
+    expect(await busy.json()).toMatchObject({ code: "unknown" });
+
+    const saved = once(worker, "message");
+    signalBookingWorkers(releaseLock);
+    expect(await saved).toEqual([201]);
+
+    const rejected = await book(app, short, shortInput, key);
+    expect(rejected.status).toBe(409);
+    expect(await rejected.json()).toMatchObject({ code: "slot_unavailable" });
+  } finally {
+    await worker.terminate();
+  }
+});
+
+function bookingWorker(
+  path: string,
+  id: string,
+  values: Record<string, unknown>,
+  signals: { start?: SharedArrayBuffer; releaseLock?: SharedArrayBuffer },
+) {
+  return new Worker(new URL("./booking-worker.ts", import.meta.url), {
+    execArgv: ["--import", "tsx"],
+    workerData: {
+      path,
+      url: bookingPath(id),
+      options: bookingRequest(values, randomUUID()),
+      ...signals,
+    },
+  });
+}
+
+function bookingSignal() {
+  return new Int32Array(new SharedArrayBuffer(Int32Array.BYTES_PER_ELEMENT));
+}
+
+function signalBookingWorkers(signal: Int32Array<SharedArrayBuffer>) {
+  Atomics.store(signal, 0, 1);
+  Atomics.notify(signal, 0);
+}
 
 test("replays the original booking after restart and a schedule change", async () => {
   using directory = mkdtempDisposableSync(join(tmpdir(), "booking-replay-"));
