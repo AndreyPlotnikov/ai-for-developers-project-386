@@ -6,6 +6,7 @@ import type {
   BookingInput,
   Meeting,
   MeetingTypeAvailability,
+  UpcomingMeetings,
 } from "./generated/api.schemas.js";
 import { MeetingTypes, ownerName } from "./meeting-types.js";
 
@@ -33,6 +34,7 @@ export class Meetings {
         timeZone TEXT NOT NULL
       ) STRICT;
 
+      CREATE INDEX IF NOT EXISTS meetings_starts_at ON meetings(startsAt);
       CREATE INDEX IF NOT EXISTS meetings_ends_at ON meetings(endsAt);
 
       CREATE TABLE IF NOT EXISTS booking_attempts (
@@ -116,6 +118,17 @@ export class Meetings {
       this.database.prepare("INSERT INTO booking_attempts (id) VALUES (?)").run(id);
       return { status: "not_saved" };
     });
+  }
+
+  listUpcoming(): UpcomingMeetings {
+    const rows = this.database
+      .prepare("SELECT * FROM meetings WHERE startsAt > ? ORDER BY startsAt")
+      .all(this.now().getTime());
+    const meetings = rows.map((row) => {
+      const { id, meetingTypeName, guestName, guestEmail, startsAt, endsAt } = readMeeting(row);
+      return { id, meetingTypeName, guestName, guestEmail, startsAt, endsAt };
+    });
+    return { timeZone: this.calendar.timeZone, meetings };
   }
 
   freeSlots(durationMinutes: number): MeetingTypeAvailability {

@@ -3,6 +3,7 @@ import { useState } from "react";
 import { readBookingAttempt } from "./booking-attempt";
 import { MeetingTypePage, MeetingTypesPage } from "./MeetingTypes";
 import { NewMeetingType } from "./NewMeetingType";
+import { UpcomingMeetingsPage } from "./UpcomingMeetings";
 
 export default function App() {
   const [attempt] = useState(readBookingAttempt);
@@ -16,6 +17,7 @@ export default function App() {
   }
   if (path === "/admin/meeting-types") page = <MeetingTypesPage ownerView />;
   if (path === "/admin/meeting-types/new") page = <NewMeetingType />;
+  if (path === "/admin/meetings") page = <UpcomingMeetingsPage />;
 
   return (
     <div className="page">

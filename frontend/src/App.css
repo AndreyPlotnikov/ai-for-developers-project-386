@@ -360,3 +360,28 @@ button:not(:disabled, [aria-disabled="true"]) {
 .calendar-status:empty {
   margin: 0;
 }
+
+.upcoming-meetings {
+  display: grid;
+  max-width: 640px;
+  gap: 16px;
+  padding: 0;
+  list-style: none;
+}
+
+.upcoming-meetings h2,
+.upcoming-meetings dl {
+  margin: 0;
+}
+
+.upcoming-meetings dt {
+  font-weight: 700;
+}
+
+.upcoming-meetings dd {
+  margin: 0 0 8px;
+}
+
+.upcoming-meetings dd:last-child {
+  margin-bottom: 0;
+}

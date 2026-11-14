@@ -23,7 +23,7 @@ export function createApp(database: DatabaseSync, options: AppOptions = {}) {
   const meetingTypes = new MeetingTypes(database);
   const meetings = new Meetings(database, meetingTypes, availability, now);
   return new Hono<CalendarEnv>()
-    .use("/api/meeting-types/*", async (c, next) => {
+    .use("/api/*", async (c, next) => {
       c.set("meetingTypes", meetingTypes);
       c.set("availability", availability);
       c.set("now", now);
