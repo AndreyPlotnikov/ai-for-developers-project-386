@@ -17,6 +17,7 @@ export const meetingTypesListMeetingTypesResponseMeetingTypesItemDurationMinutes
 
 
 export const MeetingTypesListMeetingTypesResponse = zod.object({
+  "ownerName": zod.string().describe('Имя владельца календаря.'),
   "meetingTypes": zod.array(zod.object({
   "id": zod.string().describe('Уникальный идентификатор для прямой ссылки.'),
   "name": zod.string().min(1).max(meetingTypesListMeetingTypesResponseMeetingTypesItemNameMax).describe('Введите название длиной от 1 до 100 символов без учёта пробелов по краям.'),
@@ -128,6 +129,41 @@ export const MeetingTypesGetAvailabilityResponse = zod.object({
 }).describe('Доступное время для встречи.')).describe('Свободные слоты в порядке начала.')
 }).describe('Слоты на календарную дату владельца.')).min(meetingTypesGetAvailabilityResponseDaysMin).max(meetingTypesGetAvailabilityResponseDaysMax).describe('Календарные даты, включая даты без доступного времени.')
 }).describe('Доступность типа встречи на ближайшие 14 календарных дат.')
+
+
+export const MeetingTypesCreateBookingParams = zod.object({
+  "id": zod.string().describe('Идентификатор выбранного типа встречи.')
+})
+
+export const MeetingTypesCreateBookingHeader = zod.object({
+  "Idempotency-Key": zod.uuid().describe('Ключ попытки. Повтор с тем же ключом возвращает исходное подтверждение.')
+})
+
+export const meetingTypesCreateBookingBodyGuestNameMax = 100;
+
+export const meetingTypesCreateBookingBodyGuestEmailMax = 254;
+
+
+export const meetingTypesCreateBookingBodyGuestEmailRegExp = new RegExp('^[^@\\s]+@[^@\\s.]+(?:\\.[^@\\s.]+)+$');
+
+
+export const MeetingTypesCreateBookingBody = zod.object({
+  "startsAt": zod.iso.datetime({"offset":true}).describe('Выберите время встречи.'),
+  "guestName": zod.string().min(1).max(meetingTypesCreateBookingBodyGuestNameMax).describe('Введите имя длиной от 1 до 100 символов.'),
+  "guestEmail": zod.string().max(meetingTypesCreateBookingBodyGuestEmailMax).regex(meetingTypesCreateBookingBodyGuestEmailRegExp).describe('Введите корректный email длиной до 254 символов.')
+}).describe('Поля формы записи.')
+
+export const MeetingTypesCreateBookingResponse = zod.object({
+  "id": zod.string().describe('Уникальный идентификатор встречи.'),
+  "meetingTypeId": zod.string().describe('Идентификатор выбранного типа встречи.'),
+  "meetingTypeName": zod.string().describe('Название выбранного типа встречи на момент записи.'),
+  "ownerName": zod.string().describe('Имя владельца на момент записи.'),
+  "guestName": zod.string().describe('Имя гостя.'),
+  "guestEmail": zod.string().describe('Email гостя.'),
+  "startsAt": zod.iso.datetime({"offset":true}).describe('Момент начала встречи.'),
+  "endsAt": zod.iso.datetime({"offset":true}).describe('Момент окончания встречи.'),
+  "timeZone": zod.string().describe('Именованный часовой пояс владельца на момент записи.')
+}).describe('Подтверждение сохранённой встречи.')
 
 
 export const HealthResponse = zod.object({

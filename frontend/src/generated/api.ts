@@ -26,6 +26,86 @@ export interface AvailabilityDay {
 }
 
 /**
+ * Ключ одной попытки записи.
+ */
+export type BookingAttemptId = string;
+
+/**
+ * Результат нельзя подтвердить сейчас.
+ */
+export type BookingAttemptUnknownCode = typeof BookingAttemptUnknownCode[keyof typeof BookingAttemptUnknownCode];
+
+
+export const BookingAttemptUnknownCode = {
+  unknown: 'unknown',
+} as const;
+
+/**
+ * Исход попытки пока неизвестен.
+ */
+export interface BookingAttemptUnknown {
+  /** Результат нельзя подтвердить сейчас. */
+  code: BookingAttemptUnknownCode;
+  /** Сообщение для гостя. */
+  message: string;
+}
+
+/**
+ * Поля формы записи.
+ */
+export interface BookingInput {
+  /** Выберите время встречи. */
+  startsAt: string;
+  /**
+     * Введите имя длиной от 1 до 100 символов.
+     * @minLength 1
+     * @maxLength 100
+     */
+  guestName: string;
+  /**
+     * Введите корректный email длиной до 254 символов.
+     * @maxLength 254
+     * @pattern ^[^@\s]+@[^@\s.]+(?:\.[^@\s.]+)+$
+     */
+  guestEmail: string;
+}
+
+/**
+ * Встреча не была сохранена.
+ */
+export type BookingNotSavedCode = typeof BookingNotSavedCode[keyof typeof BookingNotSavedCode];
+
+
+export const BookingNotSavedCode = {
+  not_saved: 'not_saved',
+} as const;
+
+/**
+ * Попытка точно завершилась без сохранения.
+ */
+export interface BookingNotSaved {
+  /** Встреча не была сохранена. */
+  code: BookingNotSavedCode;
+  /** Сообщение для гостя. */
+  message: string;
+}
+
+/**
+ * Ошибки по имени поля.
+ */
+export type BookingValidationErrorFieldErrors = {[key: string]: string};
+
+/**
+ * Ошибки полей формы записи.
+ */
+export interface BookingValidationError {
+  /** Ошибки по имени поля. */
+  fieldErrors: BookingValidationErrorFieldErrors;
+  /** Общая ошибка запроса без привязки к полю. */
+  message?: string;
+}
+
+/**
  * Состояние доступного приложения.
  */
 export type HealthStatus = typeof HealthStatus[keyof typeof HealthStatus];
@@ -41,6 +121,30 @@ export const HealthStatus = {
 export interface Health {
   /** Состояние доступного приложения. */
   status: HealthStatus;
+}
+
+/**
+ * Подтверждение сохранённой встречи.
+ */
+export interface Meeting {
+  /** Уникальный идентификатор встречи. */
+  id: string;
+  /** Идентификатор выбранного типа встречи. */
+  meetingTypeId: string;
+  /** Название выбранного типа встречи на момент записи. */
+  meetingTypeName: string;
+  /** Имя владельца на момент записи. */
+  ownerName: string;
+  /** Имя гостя. */
+  guestName: string;
+  /** Email гостя. */
+  guestEmail: string;
+  /** Момент начала встречи. */
+  startsAt: string;
+  /** Момент окончания встречи. */
+  endsAt: string;
+  /** Именованный часовой пояс владельца на момент записи. */
+  timeZone: string;
 }
 
 /**
@@ -154,6 +258,8 @@ export interface MeetingTypeAvailability {
  * Каталог типов встреч.
  */
 export interface MeetingTypeCatalog {
+  /** Имя владельца календаря. */
+  ownerName: string;
   /** Доступные типы встреч. */
   meetingTypes: MeetingType[];
 }
@@ -222,6 +328,26 @@ export interface MeetingTypeValidationError {
   fieldErrors: MeetingTypeValidationErrorFieldErrors;
   /** Общая ошибка запроса без привязки к полю. */
   message?: string;
+}
+
+/**
+ * Требуется выбрать другой слот.
+ */
+export type SlotUnavailableCode = typeof SlotUnavailableCode[keyof typeof SlotUnavailableCode];
+
+
+export const SlotUnavailableCode = {
+  slot_unavailable: 'slot_unavailable',
+} as const;
+
+/**
+ * Выбранный слот больше недоступен.
+ */
+export interface SlotUnavailable {
+  /** Требуется выбрать другой слот. */
+  code: SlotUnavailableCode;
+  /** Сообщение для гостя. */
+  message: string;
 }
 
 export type meetingTypesListMeetingTypesResponse200 = {
@@ -492,6 +618,86 @@ export const meetingTypesGetAvailability = async (id: string, options?: RequestI
 
   const data: meetingTypesGetAvailabilityResponse['data'] = body ? JSON.parse(body) : {}
   return { data, status: res.status, headers: res.headers } as meetingTypesGetAvailabilityResponse
+}
+
+
+
+export type meetingTypesCreateBookingResponse201 = {
+  data: Meeting
+  status: 201
+}
+
+export type meetingTypesCreateBookingResponse400 = {
+  data: BookingValidationError
+  status: 400
+}
+
+export type meetingTypesCreateBookingResponse404 = {
+  data: MeetingTypeNotFound
+  status: 404
+}
+
+export type meetingTypesCreateBookingResponse409 = {
+  data: SlotUnavailable
+  status: 409
+}
+
+export type meetingTypesCreateBookingResponse503 = {
+  data: BookingNotSaved | BookingAttemptUnknown
+  status: 503
+}
+
+export type meetingTypesCreateBookingResponseSuccess = (meetingTypesCreateBookingResponse201) & {
+  headers: Headers;
+};
+export type meetingTypesCreateBookingResponseError = (meetingTypesCreateBookingResponse400 | meetingTypesCreateBookingResponse404 | meetingTypesCreateBookingResponse409 | meetingTypesCreateBookingResponse503) & {
+  headers: Headers;
+};
+
+export type meetingTypesCreateBookingResponse = (meetingTypesCreateBookingResponseSuccess | meetingTypesCreateBookingResponseError)
+
+export const getMeetingTypesCreateBookingUrl = (id: string,) => {
+
+
+
+
+  return `/api/meeting-types/${id}/bookings`
+}
+
+/**
+ * Сохранить запись на встречу или вернуть подтверждение уже сохранённой попытки.
+ */
+export const meetingTypesCreateBooking = async (id: string,
+    bookingInput: BookingInput, options?: RequestInit): Promise<meetingTypesCreateBookingResponse> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+const res = await fetch(getMeetingTypesCreateBookingUrl(id),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(bookingInput)
+  }
+)
+
+
+  const body = [204, 205, 304].includes(res.status) ? null : await res.text();
+
+  const data: meetingTypesCreateBookingResponse['data'] = body ? JSON.parse(body) : {}
+  return { data, status: res.status, headers: res.headers } as meetingTypesCreateBookingResponse
 }
 
 

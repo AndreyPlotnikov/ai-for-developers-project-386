@@ -28,3 +28,25 @@ export const MeetingTypesCreateMeetingTypeBody = zod.object({
   "description": zod.string().max(meetingTypesCreateMeetingTypeBodyDescriptionMax).optional().describe('Введите описание обычным текстом длиной до 1000 символов.'),
   "durationMinutes": zod.int().min(meetingTypesCreateMeetingTypeBodyDurationMinutesMin).max(meetingTypesCreateMeetingTypeBodyDurationMinutesMax).describe('Введите длительность в минутах целым числом от 5 до 480.')
 }).describe('Ввод для создания типа встречи.')
+
+
+/**
+ * Сохранить запись на встречу или вернуть подтверждение уже сохранённой попытки.
+ */
+export const MeetingTypesCreateBookingHeader = zod.object({
+  "Idempotency-Key": zod.uuid().describe('Ключ попытки. Повтор с тем же ключом возвращает исходное подтверждение.')
+})
+
+export const meetingTypesCreateBookingBodyGuestNameMax = 100;
+
+export const meetingTypesCreateBookingBodyGuestEmailMax = 254;
+
+
+export const meetingTypesCreateBookingBodyGuestEmailRegExp = new RegExp('^[^@\\s]+@[^@\\s.]+(?:\\.[^@\\s.]+)+$');
+
+
+export const MeetingTypesCreateBookingBody = zod.object({
+  "startsAt": zod.iso.datetime({"offset":true}).describe('Выберите время встречи.'),
+  "guestName": zod.string().min(1).max(meetingTypesCreateBookingBodyGuestNameMax).describe('Введите имя длиной от 1 до 100 символов.'),
+  "guestEmail": zod.string().max(meetingTypesCreateBookingBodyGuestEmailMax).regex(meetingTypesCreateBookingBodyGuestEmailRegExp).describe('Введите корректный email длиной до 254 символов.')
+}).describe('Поля формы записи.')

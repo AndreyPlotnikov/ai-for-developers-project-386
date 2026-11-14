@@ -20,6 +20,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/MeetingTypeCatalog'
               example:
+                ownerName: Андрей Плотников
                 meetingTypes: []
       tags:
         - Meeting types
@@ -171,6 +172,65 @@ paths:
                 $ref: '#/components/schemas/MeetingTypeNotFound'
       tags:
         - Meeting types
+  /api/meeting-types/{id}/bookings:
+    post:
+      operationId: MeetingTypes_createBooking
+      description: Сохранить запись на встречу или вернуть подтверждение уже сохранённой попытки.
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Идентификатор выбранного типа встречи.
+          schema:
+            type: string
+        - name: Idempotency-Key
+          in: header
+          required: true
+          description: Ключ попытки. Повтор с тем же ключом возвращает исходное подтверждение.
+          schema:
+            $ref: '#/components/schemas/BookingAttemptId'
+      responses:
+        '201':
+          description: The request has succeeded and a new resource has been created as a result.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Meeting'
+        '400':
+          description: The server could not understand the request due to invalid syntax.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BookingValidationError'
+        '404':
+          description: The server cannot find the requested resource.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MeetingTypeNotFound'
+        '409':
+          description: The request conflicts with the current state of the server.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SlotUnavailable'
+        '503':
+          description: Service unavailable.
+          content:
+            application/json:
+              schema:
+                anyOf:
+                  - $ref: '#/components/schemas/BookingNotSaved'
+                  - $ref: '#/components/schemas/BookingAttemptUnknown'
+      tags:
+        - Meeting types
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/BookingInput'
+        description: Момент начала, имя и email гостя. Пробелы по краям имени и email удаляются.
   /health:
     get:
       operationId: health
@@ -224,6 +284,87 @@ components:
           description: Момент окончания встречи.
           example: '2026-02-02T06:45:00Z'
       description: Доступное время для встречи.
+    BookingAttemptId:
+      type: string
+      format: uuid
+      description: Ключ одной попытки записи.
+      example: 88f6cbf1-5158-4b80-9476-777326aec804
+    BookingAttemptUnknown:
+      type: object
+      required:
+        - code
+        - message
+      properties:
+        code:
+          type: string
+          enum:
+            - unknown
+          description: Результат нельзя подтвердить сейчас.
+          example: unknown
+        message:
+          type: string
+          description: Сообщение для гостя.
+          example: Результат сохранения неизвестен
+      description: Исход попытки пока неизвестен.
+    BookingInput:
+      type: object
+      required:
+        - startsAt
+        - guestName
+        - guestEmail
+      properties:
+        startsAt:
+          type: string
+          format: date-time
+          description: Выберите время встречи.
+          example: '2026-02-02T06:15:00Z'
+        guestName:
+          type: string
+          minLength: 1
+          maxLength: 100
+          description: Введите имя длиной от 1 до 100 символов.
+          example: Алекс
+        guestEmail:
+          type: string
+          maxLength: 254
+          pattern: ^[^@\s]+@[^@\s.]+(?:\.[^@\s.]+)+$
+          description: Введите корректный email длиной до 254 символов.
+          example: a@b.c
+      description: Поля формы записи.
+    BookingNotSaved:
+      type: object
+      required:
+        - code
+        - message
+      properties:
+        code:
+          type: string
+          enum:
+            - not_saved
+          description: Встреча не была сохранена.
+          example: not_saved
+        message:
+          type: string
+          description: Сообщение для гостя.
+          example: Не удалось сохранить встречу. Повторите сохранение.
+      description: Попытка точно завершилась без сохранения.
+    BookingValidationError:
+      type: object
+      required:
+        - fieldErrors
+      properties:
+        fieldErrors:
+          type: object
+          additionalProperties:
+            type: string
+          description: Ошибки по имени поля.
+          example:
+            guestEmail: Введите корректный email длиной до 254 символов.
+        message:
+          type: string
+          description: Общая ошибка запроса без привязки к полю.
+          example: Некорректное тело запроса
+      description: Ошибки полей формы записи.
     Health:
       type: object
       required:
@@ -238,6 +379,58 @@ components:
       description: Состояние приложения.
       example:
         status: ok
+    Meeting:
+      type: object
+      required:
+        - id
+        - meetingTypeId
+        - meetingTypeName
+        - ownerName
+        - guestName
+        - guestEmail
+        - startsAt
+        - endsAt
+        - timeZone
+      properties:
+        id:
+          type: string
+          description: Уникальный идентификатор встречи.
+          example: f9ae5308-2bc7-4590-b3cb-4f265025f281
+        meetingTypeId:
+          type: string
+          description: Идентификатор выбранного типа встречи.
+          example: 451f0834-690a-4312-8efb-ec573c057493
+        meetingTypeName:
+          type: string
+          description: Название выбранного типа встречи на момент записи.
+          example: Консультация
+        ownerName:
+          type: string
+          description: Имя владельца на момент записи.
+          example: Андрей Плотников
+        guestName:
+          type: string
+          description: Имя гостя.
+          example: Алекс
+        guestEmail:
+          type: string
+          description: Email гостя.
+          example: a@b.c
+        startsAt:
+          type: string
+          format: date-time
+          description: Момент начала встречи.
+          example: '2026-02-02T06:15:00Z'
+        endsAt:
+          type: string
+          format: date-time
+          description: Момент окончания встречи.
+          example: '2026-02-02T06:45:00Z'
+        timeZone:
+          type: string
+          description: Именованный часовой пояс владельца на момент записи.
+          example: Europe/Moscow
+      description: Подтверждение сохранённой встречи.
     MeetingType:
       type: object
       required:
@@ -345,8 +538,13 @@ components:
     MeetingTypeCatalog:
       type: object
       required:
+        - ownerName
         - meetingTypes
       properties:
+        ownerName:
+          type: string
+          description: Имя владельца календаря.
+          example: Андрей Плотников
         meetingTypes:
           type: array
           items:
@@ -426,6 +624,23 @@ components:
           description: Общая ошибка запроса без привязки к полю.
           example: Некорректное тело запроса
       description: Ошибки полей формы создания.
+    SlotUnavailable:
+      type: object
+      required:
+        - code
+        - message
+      properties:
+        code:
+          type: string
+          enum:
+            - slot_unavailable
+          description: Требуется выбрать другой слот.
+          example: slot_unavailable
+        message:
+          type: string
+          description: Сообщение для гостя.
+          example: Выбранное время больше недоступно. Выберите другой слот.
+      description: Выбранный слот больше недоступен.
 servers:
   - url: /
     description: Текущий сервер приложения

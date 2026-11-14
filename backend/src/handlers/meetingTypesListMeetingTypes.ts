@@ -10,12 +10,12 @@ import { zValidator } from "../generated/api.validator.js";
 import type { MeetingTypesListMeetingTypesContext } from "../generated/api.context.js";
 import { MeetingTypesListMeetingTypesResponse } from "../generated/api.zod.js";
 
-import type { MeetingTypeEnv } from "../meeting-types.js";
+import { ownerName, type MeetingTypeEnv } from "../meeting-types.js";
 
 const factory = createFactory<MeetingTypeEnv>();
 export const meetingTypesListMeetingTypesHandlers = factory.createHandlers(
   zValidator("response", MeetingTypesListMeetingTypesResponse),
   async (c: MeetingTypesListMeetingTypesContext<MeetingTypeEnv>) => {
-    return c.json({ meetingTypes: c.var.meetingTypes.list() });
+    return c.json({ ownerName, meetingTypes: c.var.meetingTypes.list() });
   },
 );

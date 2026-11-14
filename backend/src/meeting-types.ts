@@ -6,6 +6,8 @@ import type {
   MeetingTypeInput,
 } from "./generated/api.schemas.js";
 
+export const ownerName = "Андрей Плотников";
+
 export class MeetingTypes {
   constructor(private readonly database: DatabaseSync) {
     database.exec(`

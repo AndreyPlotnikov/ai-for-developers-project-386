@@ -22,6 +22,6 @@ export const meetingTypesGetAvailabilityHandlers = factory.createHandlers(
   async (c: MeetingTypesGetAvailabilityContext<CalendarEnv>) => {
     const meetingType = c.var.meetingTypes.get(c.req.valid("param").id);
     if (!meetingType) return c.json({ message: "Тип встречи не найден" }, 404);
-    return c.json(c.var.availability.list(meetingType.durationMinutes, c.var.now()));
+    return c.json(c.var.meetings.freeSlots(meetingType.durationMinutes));
   },
 );

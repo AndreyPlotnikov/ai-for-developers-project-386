@@ -130,7 +130,10 @@ test("a guest can retry an initial catalog failure using the keyboard", async ({
 test("a failed catalog refresh keeps the previously loaded types visible", async ({ page }) => {
   await page.route("**/api/meeting-types", (route) =>
     route.fulfill({
-      json: { meetingTypes: [{ id: "type-1", name: "Знакомство", durationMinutes: 15 }] },
+      json: {
+        ownerName: "Андрей Плотников",
+        meetingTypes: [{ id: "type-1", name: "Знакомство", durationMinutes: 15 }],
+      },
     }),
   );
   await page.goto("/book");

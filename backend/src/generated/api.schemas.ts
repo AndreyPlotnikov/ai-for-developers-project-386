@@ -26,6 +26,86 @@ export interface AvailabilityDay {
 }
 
 /**
+ * Ключ одной попытки записи.
+ */
+export type BookingAttemptId = string;
+
+/**
+ * Результат нельзя подтвердить сейчас.
+ */
+export type BookingAttemptUnknownCode = typeof BookingAttemptUnknownCode[keyof typeof BookingAttemptUnknownCode];
+
+
+export const BookingAttemptUnknownCode = {
+  unknown: 'unknown',
+} as const;
+
+/**
+ * Исход попытки пока неизвестен.
+ */
+export interface BookingAttemptUnknown {
+  /** Результат нельзя подтвердить сейчас. */
+  code: BookingAttemptUnknownCode;
+  /** Сообщение для гостя. */
+  message: string;
+}
+
+/**
+ * Поля формы записи.
+ */
+export interface BookingInput {
+  /** Выберите время встречи. */
+  startsAt: string;
+  /**
+     * Введите имя длиной от 1 до 100 символов.
+     * @minLength 1
+     * @maxLength 100
+     */
+  guestName: string;
+  /**
+     * Введите корректный email длиной до 254 символов.
+     * @maxLength 254
+     * @pattern ^[^@\s]+@[^@\s.]+(?:\.[^@\s.]+)+$
+     */
+  guestEmail: string;
+}
+
+/**
+ * Встреча не была сохранена.
+ */
+export type BookingNotSavedCode = typeof BookingNotSavedCode[keyof typeof BookingNotSavedCode];
+
+
+export const BookingNotSavedCode = {
+  not_saved: 'not_saved',
+} as const;
+
+/**
+ * Попытка точно завершилась без сохранения.
+ */
+export interface BookingNotSaved {
+  /** Встреча не была сохранена. */
+  code: BookingNotSavedCode;
+  /** Сообщение для гостя. */
+  message: string;
+}
+
+/**
+ * Ошибки по имени поля.
+ */
+export type BookingValidationErrorFieldErrors = {[key: string]: string};
+
+/**
+ * Ошибки полей формы записи.
+ */
+export interface BookingValidationError {
+  /** Ошибки по имени поля. */
+  fieldErrors: BookingValidationErrorFieldErrors;
+  /** Общая ошибка запроса без привязки к полю. */
+  message?: string;
+}
+
+/**
  * Состояние доступного приложения.
  */
 export type HealthStatus = typeof HealthStatus[keyof typeof HealthStatus];
@@ -41,6 +121,30 @@ export const HealthStatus = {
 export interface Health {
   /** Состояние доступного приложения. */
   status: HealthStatus;
+}
+
+/**
+ * Подтверждение сохранённой встречи.
+ */
+export interface Meeting {
+  /** Уникальный идентификатор встречи. */
+  id: string;
+  /** Идентификатор выбранного типа встречи. */
+  meetingTypeId: string;
+  /** Название выбранного типа встречи на момент записи. */
+  meetingTypeName: string;
+  /** Имя владельца на момент записи. */
+  ownerName: string;
+  /** Имя гостя. */
+  guestName: string;
+  /** Email гостя. */
+  guestEmail: string;
+  /** Момент начала встречи. */
+  startsAt: string;
+  /** Момент окончания встречи. */
+  endsAt: string;
+  /** Именованный часовой пояс владельца на момент записи. */
+  timeZone: string;
 }
 
 /**
@@ -154,6 +258,8 @@ export interface MeetingTypeAvailability {
  * Каталог типов встреч.
  */
 export interface MeetingTypeCatalog {
+  /** Имя владельца календаря. */
+  ownerName: string;
   /** Доступные типы встреч. */
   meetingTypes: MeetingType[];
 }
@@ -222,5 +328,25 @@ export interface MeetingTypeValidationError {
   fieldErrors: MeetingTypeValidationErrorFieldErrors;
   /** Общая ошибка запроса без привязки к полю. */
   message?: string;
+}
+
+/**
+ * Требуется выбрать другой слот.
+ */
+export type SlotUnavailableCode = typeof SlotUnavailableCode[keyof typeof SlotUnavailableCode];
+
+
+export const SlotUnavailableCode = {
+  slot_unavailable: 'slot_unavailable',
+} as const;
+
+/**
+ * Выбранный слот больше недоступен.
+ */
+export interface SlotUnavailable {
+  /** Требуется выбрать другой слот. */
+  code: SlotUnavailableCode;
+  /** Сообщение для гостя. */
+  message: string;
 }
 

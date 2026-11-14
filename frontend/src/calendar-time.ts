@@ -23,3 +23,12 @@ export function formatSlotTime(instant: string, timeZone: string) {
     timeZone,
   }).format(new Date(instant));
 }
+
+export function formatMeetingTime(startsAt: string, endsAt: string, timeZone: string) {
+  const date = new Intl.DateTimeFormat("ru-RU", { dateStyle: "long", timeZone });
+  const startDate = date.format(new Date(startsAt));
+  const endDate = date.format(new Date(endsAt));
+  const start = formatSlotTime(startsAt, timeZone);
+  const end = formatSlotTime(endsAt, timeZone);
+  return `${startDate}, ${start}–${startDate === endDate ? "" : endDate + ", "}${end} (${timeZone})`;
+}

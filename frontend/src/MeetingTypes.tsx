@@ -9,7 +9,7 @@ import {
 async function loadCatalog(signal: AbortSignal) {
   const response = await meetingTypesListMeetingTypes({ signal, cache: "no-store" });
   if (response.status !== 200) throw new Error("Catalog unavailable");
-  return response.data.meetingTypes;
+  return response.data;
 }
 
 function useLoad<T>(load: (signal: AbortSignal) => Promise<T>) {
@@ -85,21 +85,21 @@ export function MeetingTypesPage({ ownerView = false }: { ownerView?: boolean })
       ) : (
         <div className="owner-panel">
           <p>Владелец календаря</p>
-          <h1>Андрей Плотников</h1>
+          <h1>{catalog.data?.ownerName ?? "Каталог встреч"}</h1>
           <h2>Выберите тип встречи</h2>
         </div>
       )}
       <LoadStatus resource={catalog} message="Не удалось загрузить типы встреч." />
-      {catalog.data?.length === 0 && (
+      {catalog.data?.meetingTypes.length === 0 && (
         <p>
           {ownerView
             ? "Вы пока не создали ни одного типа встречи."
             : "Пока нет доступных типов встреч"}
         </p>
       )}
-      {!!catalog.data?.length && (
+      {!!catalog.data?.meetingTypes.length && (
         <ul className="meeting-grid">
-          {catalog.data.map((meetingType) => (
+          {catalog.data.meetingTypes.map((meetingType) => (
             <li className="meeting-card" key={meetingType.id}>
               <h3>
                 <a className="meeting-card-link" href={meetingTypePath(meetingType.id)}>
