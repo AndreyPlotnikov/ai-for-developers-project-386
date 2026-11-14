@@ -1,11 +1,21 @@
 import "./App.css";
+import { MeetingTypePage, MeetingTypesPage } from "./MeetingTypes";
+import { NewMeetingType } from "./NewMeetingType";
 
 export default function App() {
+  const path = window.location.pathname.replace(/\/$/, "");
+  const detail = /^\/book\/([^/]+)$/.exec(path);
+  let page = <Home />;
+  if (path === "/book") page = <MeetingTypesPage />;
+  if (detail) page = <MeetingTypePage id={detail[1]} />;
+  if (path === "/admin/meeting-types") page = <MeetingTypesPage ownerView />;
+  if (path === "/admin/meeting-types/new") page = <NewMeetingType />;
+
   return (
     <div className="page">
       <header className="header">
         <div className="header-inner">
-          <div className="brand">
+          <a className="brand" href="/">
             <svg
               aria-hidden="true"
               viewBox="0 0 24 24"
@@ -21,40 +31,39 @@ export default function App() {
               <path d="M16 14.5V16l1 1" />
             </svg>
             <span>Календарь звонков</span>
-          </div>
+          </a>
           <nav aria-label="Основная навигация" className="navigation">
-            <button disabled>
-              Записаться <span className="visually-hidden">(скоро)</span>
-            </button>
-            <button disabled>
-              Админка <span className="visually-hidden">(скоро)</span>
-            </button>
+            <a href="/book">Записаться</a>
+            <a href="/admin/meeting-types">Админка</a>
           </nav>
         </div>
       </header>
 
-      <main className="main">
-        <div className="content">
-          <section className="intro" aria-labelledby="page-title">
-            <span className="eyebrow">Быстрая запись на звонок</span>
-            <h1 id="page-title">Календарь звонков</h1>
-            <p>Забронируйте встречу: выберите тип встречи и удобное время.</p>
-            <button className="primary-button" disabled>
-              Записаться <span aria-hidden="true">→</span>
-            </button>
-            <p className="availability">Запись и управление встречами скоро появятся</p>
-          </section>
+      <main className="main">{page}</main>
+    </div>
+  );
+}
 
-          <section className="features" aria-labelledby="features-title">
-            <h2 id="features-title">Возможности</h2>
-            <ul>
-              <li>Выбор типа встречи и удобного времени.</li>
-              <li>Бронирование встречи с подтверждением.</li>
-              <li>Управление типами встреч и просмотр предстоящих встреч владельцем.</li>
-            </ul>
-          </section>
-        </div>
-      </main>
+function Home() {
+  return (
+    <div className="content">
+      <section className="intro" aria-labelledby="page-title">
+        <span className="eyebrow">Быстрая запись на звонок</span>
+        <h1 id="page-title">Календарь звонков</h1>
+        <p>Забронируйте встречу: выберите тип встречи и удобное время.</p>
+        <a className="primary-button" href="/book">
+          Записаться <span aria-hidden="true">→</span>
+        </a>
+      </section>
+
+      <section className="features" aria-labelledby="features-title">
+        <h2 id="features-title">Возможности</h2>
+        <ul>
+          <li>Выбор типа встречи и удобного времени.</li>
+          <li>Бронирование встречи с подтверждением.</li>
+          <li>Управление типами встреч и просмотр предстоящих встреч владельцем.</li>
+        </ul>
+      </section>
     </div>
   );
 }

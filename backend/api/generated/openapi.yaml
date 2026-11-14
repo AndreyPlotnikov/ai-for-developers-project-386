@@ -1,11 +1,96 @@
 openapi: 3.0.0
 info:
   title: Call Calendar API
-  description: API для проверки состояния приложения Call Calendar.
+  description: API приложения Call Calendar.
   version: 0.0.0
 tags:
   - name: Health
+  - name: Meeting types
 paths:
+  /api/meeting-types:
+    get:
+      operationId: MeetingTypes_listMeetingTypes
+      description: Получить каталог типов встреч.
+      parameters: []
+      responses:
+        '200':
+          description: The request has succeeded.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MeetingTypeCatalog'
+              example:
+                meetingTypes: []
+      tags:
+        - Meeting types
+    post:
+      operationId: MeetingTypes_createMeetingType
+      description: Сохранить новый тип встречи и вернуть данные для прямой ссылки.
+      parameters: []
+      responses:
+        '201':
+          description: The request has succeeded and a new resource has been created as a result.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MeetingType'
+              example:
+                id: 451f0834-690a-4312-8efb-ec573c057493
+                name: Консультация
+                durationMinutes: 30
+        '400':
+          description: The server could not understand the request due to invalid syntax.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MeetingTypeValidationError'
+              example:
+                fieldErrors:
+                  durationMinutes: Введите целое число от 5 до 480
+        '503':
+          description: Service unavailable.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MeetingTypeSaveError'
+      tags:
+        - Meeting types
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MeetingTypeInput'
+            example:
+              name: Консультация
+              durationMinutes: 30
+        description: Поля формы создания типа встречи.
+  /api/meeting-types/{id}:
+    get:
+      operationId: MeetingTypes_getMeetingType
+      description: Получить тип встречи по идентификатору.
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Идентификатор из прямой ссылки на тип встречи.
+          schema:
+            type: string
+      responses:
+        '200':
+          description: The request has succeeded.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MeetingType'
+        '404':
+          description: The server cannot find the requested resource.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MeetingTypeNotFound'
+      tags:
+        - Meeting types
   /health:
     get:
       operationId: health
@@ -38,6 +123,120 @@ components:
       description: Состояние приложения.
       example:
         status: ok
+    MeetingType:
+      type: object
+      required:
+        - id
+        - name
+        - durationMinutes
+      properties:
+        id:
+          type: string
+          description: Уникальный идентификатор для прямой ссылки.
+          example: 451f0834-690a-4312-8efb-ec573c057493
+        name:
+          type: string
+          minLength: 1
+          maxLength: 100
+          description: Введите название длиной от 1 до 100 символов без учёта пробелов по краям.
+          example: Консультация
+        description:
+          type: string
+          maxLength: 1000
+          description: Введите описание обычным текстом длиной до 1000 символов.
+          example: Обсудим вопросы по проекту.
+        durationMinutes:
+          type: integer
+          format: int32
+          minimum: 5
+          maximum: 480
+          description: Введите длительность в минутах целым числом от 5 до 480.
+          example: 30
+      description: Данные типа встречи.
+    MeetingTypeCatalog:
+      type: object
+      required:
+        - meetingTypes
+      properties:
+        meetingTypes:
+          type: array
+          items:
+            $ref: '#/components/schemas/MeetingType'
+          description: Доступные типы встреч.
+          example:
+            - id: 451f0834-690a-4312-8efb-ec573c057493
+              name: Консультация
+              durationMinutes: 30
+      description: Каталог типов встреч.
+    MeetingTypeInput:
+      type: object
+      required:
+        - name
+        - durationMinutes
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 100
+          description: Введите название длиной от 1 до 100 символов без учёта пробелов по краям.
+          example: Консультация
+        description:
+          type: string
+          maxLength: 1000
+          description: Введите описание обычным текстом длиной до 1000 символов.
+          example: Обсудим вопросы по проекту.
+        durationMinutes:
+          type: integer
+          format: int32
+          minimum: 5
+          maximum: 480
+          description: Введите длительность в минутах целым числом от 5 до 480.
+          example: 30
+      description: Ввод для создания типа встречи.
+    MeetingTypeNotFound:
+      type: object
+      required:
+        - message
+      properties:
+        message:
+          type: string
+          description: Сообщение для гостя.
+          example: Тип встречи не найден
+      description: Тип встречи отсутствует.
+    MeetingTypeSaveError:
+      type: object
+      required:
+        - code
+        - message
+      properties:
+        code:
+          type: string
+          enum:
+            - not_saved
+          description: Сервер подтвердил, что тип не был сохранён.
+          example: not_saved
+        message:
+          type: string
+          description: Сообщение для владельца.
+          example: Не удалось сохранить тип встречи
+      description: Сохранение типа завершилось сбоем.
+    MeetingTypeValidationError:
+      type: object
+      required:
+        - fieldErrors
+      properties:
+        fieldErrors:
+          type: object
+          additionalProperties:
+            type: string
+          description: Ошибки по имени поля.
+          example:
+            name: Введите название длиной от 1 до 100 символов
+        message:
+          type: string
+          description: Общая ошибка запроса без привязки к полю.
+          example: Некорректное тело запроса
+      description: Ошибки полей формы создания.
 servers:
   - url: /
     description: Текущий сервер приложения

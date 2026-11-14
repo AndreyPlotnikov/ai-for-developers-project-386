@@ -38,6 +38,8 @@ button {
   align-items: center;
   gap: 8px;
   font-weight: 700;
+  color: inherit;
+  text-decoration: none;
 }
 .brand svg {
   width: 21px;
@@ -49,11 +51,11 @@ button {
   display: flex;
   gap: 32px;
 }
-.navigation button {
+.navigation a {
   border: 0;
   padding: 8px 0;
   background: transparent;
-  color: #617998;
+  color: #425b7a;
   font-size: 14px;
 }
 .main {
@@ -73,7 +75,7 @@ button {
   border-radius: 20px;
   padding: 5px 13px;
   background: #f8f9fb;
-  color: #617998;
+  color: #425b7a;
   font-size: 12px;
   font-weight: 700;
   text-transform: uppercase;
@@ -84,19 +86,21 @@ h1 {
   line-height: 1.1;
   letter-spacing: -1.5px;
 }
-.intro > p:not(.availability) {
+.intro > p {
   max-width: 500px;
   margin: 0 0 26px;
-  color: #6680a1;
+  color: #425b7a;
   font-size: 18px;
   line-height: 1.6;
 }
 .primary-button {
+  display: inline-block;
   border: 0;
   border-radius: 12px;
   padding: 15px 24px;
-  background: #ff690b;
+  background: #b63d00;
   color: white;
+  text-decoration: none;
   font-weight: 700;
 }
 .primary-button span {
@@ -104,11 +108,6 @@ h1 {
 }
 button:disabled {
   cursor: not-allowed;
-}
-.availability {
-  margin: 10px 0 0;
-  color: #617998;
-  font-size: 13px;
 }
 .features {
   min-height: 250px;
@@ -125,23 +124,12 @@ button:disabled {
 .features ul {
   margin: 0;
   padding-left: 16px;
-  color: #5e789a;
+  color: #425b7a;
   font-size: 14px;
   line-height: 1.5;
 }
 .features li + li {
   margin-top: 10px;
-}
-.visually-hidden {
-  position: absolute;
-  width: 1px;
-  height: 1px;
-  padding: 0;
-  margin: -1px;
-  overflow: hidden;
-  clip: rect(0, 0, 0, 0);
-  white-space: nowrap;
-  border: 0;
 }
 @media (max-width: 1190px) {
   .content {
@@ -170,4 +158,154 @@ button:disabled {
   .features {
     min-height: 0;
   }
+}
+
+a {
+  color: #204f91;
+}
+
+:focus-visible {
+  outline: 3px solid #2357a2;
+  outline-offset: 3px;
+}
+
+.meeting-page {
+  max-width: 1152px;
+  margin: 0 auto;
+  padding: 40px 24px 64px;
+  overflow-wrap: anywhere;
+}
+
+.meeting-page h1 {
+  font-size: clamp(1.75rem, 5vw, 2.5rem);
+  letter-spacing: normal;
+}
+
+.page-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0 24px;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.owner-panel,
+.meeting-panel,
+.meeting-card {
+  padding: 24px;
+  border: 1px solid #d5dfed;
+  border-radius: 16px;
+  background: #fbf9f8;
+}
+
+.owner-panel {
+  text-align: center;
+}
+
+.owner-panel h1,
+.owner-panel p {
+  margin: 0;
+}
+
+.owner-panel h2 {
+  margin-bottom: 0;
+  font-size: 1.125rem;
+  font-weight: 400;
+}
+
+.meeting-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 16rem), 1fr));
+  gap: 16px;
+  padding: 0;
+  list-style: none;
+}
+
+.meeting-card {
+  position: relative;
+}
+
+.meeting-card-link::after {
+  position: absolute;
+  inset: 0;
+  border-radius: 16px;
+  content: "";
+}
+
+.meeting-card h3 {
+  margin: 0;
+}
+
+.meeting-card p:last-child {
+  margin-bottom: 0;
+}
+
+.meeting-description {
+  white-space: pre-wrap;
+}
+
+.meeting-panel {
+  max-width: 640px;
+  margin-top: 16px;
+}
+
+.meeting-panel h1 {
+  margin-top: 0;
+}
+
+.meeting-panel fieldset {
+  min-width: 0;
+  padding: 0;
+  border: 0;
+  margin: 0;
+}
+
+.meeting-panel label {
+  display: block;
+  margin-bottom: 6px;
+  font-weight: 700;
+}
+
+.meeting-panel input,
+.meeting-panel textarea {
+  width: 100%;
+  padding: 10px;
+  border: 1px solid #66768a;
+  border-radius: 8px;
+  background: white;
+  color: inherit;
+  font: inherit;
+}
+
+.meeting-panel textarea {
+  resize: vertical;
+}
+
+.meeting-panel [aria-invalid="true"] {
+  border-color: #a22714;
+}
+
+.field-error {
+  margin: 4px 0 14px;
+  color: #a22714;
+}
+
+.secondary-button {
+  padding: 8px 14px;
+  border: 1px solid #66768a;
+  border-radius: 8px;
+  background: #fbf9f8;
+  color: #204f91;
+}
+
+button:not(:disabled, [aria-disabled="true"]) {
+  cursor: pointer;
+}
+
+.load-status {
+  margin: 16px 0;
+}
+
+.load-status p:empty {
+  margin: 0;
 }

@@ -1,6 +1,6 @@
 # Бекенд календаря звонков
 
-TypeScript + Hono на Node.js, контракт TypeSpec и генерация сервера Orval. Сейчас единственный endpoint — `GET /health`, ответ `200 {"status":"ok"}`.
+TypeScript + Hono на Node.js, контракт TypeSpec и генерация сервера Orval. Состояние сервера доступно через `GET /health`. API типов встреч поддерживает `GET /api/meeting-types`, `POST /api/meeting-types` и `GET /api/meeting-types/{id}`.
 
 Каркас создан официальным `create-hono@0.19.5`, шаблон `nodejs`, затем дополнен генерацией по [Hono getting started](https://hono.dev/docs/getting-started/nodejs) и [руководству Orval](https://orval.dev/docs/guides/hono/).
 
@@ -52,4 +52,4 @@ src/index.ts                   запуск и остановка Node-серв�
 
 Прямые зависимости закреплены точными версиями, транзитивные — `pnpm-lock.yaml`. TypeScript 6.0.3 выбран для совместимости с генераторами, использующими compiler API. `pnpm-workspace.yaml` разрешает install script только для `esbuild`, нужного инструментам разработки. В `.npmrc` указан публичный npm registry и включена проверка версий окружения.
 
-Дымовой тест обращается к `GET /health` через `app.request()` без запуска сетевого сервера. Клиентский SDK генерируется из того же OpenAPI командой `pnpm --dir frontend generate` из корня проекта; здесь Orval генерирует сервер. Реализации бронирования и БД пока нет.
+Дымовой тест обращается к `GET /health` через `app.request()` без запуска сетевого сервера. Клиентский SDK генерируется из того же OpenAPI командой `pnpm --dir frontend generate` из корня проекта; здесь Orval генерирует сервер. Для типов встреч используется SQLite. `DATABASE_PATH` задаёт путь к файлу БД, по умолчанию `call-calendar.sqlite` в рабочем каталоге бекенда.
