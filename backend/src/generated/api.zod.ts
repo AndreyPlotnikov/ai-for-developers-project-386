@@ -17,6 +17,7 @@ export const meetingTypesListMeetingTypesResponseMeetingTypesItemDurationMinutes
 
 
 export const MeetingTypesListMeetingTypesResponse = zod.object({
+  "ownerName": zod.string().describe('Имя владельца календаря.'),
   "meetingTypes": zod.array(zod.object({
   "id": zod.string().describe('Уникальный идентификатор для прямой ссылки.'),
   "name": zod.string().min(1).max(meetingTypesListMeetingTypesResponseMeetingTypesItemNameMax).describe('Введите название длиной от 1 до 100 символов без учёта пробелов по краям.'),
@@ -25,6 +26,10 @@ export const MeetingTypesListMeetingTypesResponse = zod.object({
 }).describe('Данные типа встречи.')).describe('Доступные типы встреч.')
 }).describe('Каталог типов встреч.')
 
+
+export const MeetingTypesCreateMeetingTypeHeader = zod.object({
+  "Idempotency-Key": zod.uuid().optional().describe('Ключ попытки. Повтор с тем же ключом возвращает результат этой попытки.')
+})
 
 export const meetingTypesCreateMeetingTypeBodyNameMax = 100;
 
@@ -58,6 +63,54 @@ export const MeetingTypesCreateMeetingTypeResponse = zod.object({
 }).describe('Данные типа встречи.')
 
 
+export const MeetingTypesCheckMeetingTypeAttemptParams = zod.object({
+  "attemptId": zod.uuid().describe('Ключ из исходного запроса на создание.')
+})
+
+export const meetingTypesCheckMeetingTypeAttemptResponseOneMeetingTypeOneNameMax = 100;
+
+export const meetingTypesCheckMeetingTypeAttemptResponseOneMeetingTypeOneDescriptionMax = 1000;
+
+export const meetingTypesCheckMeetingTypeAttemptResponseOneMeetingTypeOneDurationMinutesMin = 5;
+export const meetingTypesCheckMeetingTypeAttemptResponseOneMeetingTypeOneDurationMinutesMax = 480;
+
+
+
+export const MeetingTypesCheckMeetingTypeAttemptResponse = zod.union([zod.object({
+  "status": zod.enum(['saved']).describe('Попытка создала тип встречи.'),
+  "meetingType": zod.object({
+  "id": zod.string().describe('Уникальный идентификатор для прямой ссылки.'),
+  "name": zod.string().min(1).max(meetingTypesCheckMeetingTypeAttemptResponseOneMeetingTypeOneNameMax).describe('Введите название длиной от 1 до 100 символов без учёта пробелов по краям.'),
+  "description": zod.string().max(meetingTypesCheckMeetingTypeAttemptResponseOneMeetingTypeOneDescriptionMax).optional().describe('Введите описание обычным текстом длиной до 1000 символов.'),
+  "durationMinutes": zod.int().min(meetingTypesCheckMeetingTypeAttemptResponseOneMeetingTypeOneDurationMinutesMin).max(meetingTypesCheckMeetingTypeAttemptResponseOneMeetingTypeOneDurationMinutesMax).describe('Введите длительность в минутах целым числом от 5 до 480.')
+}).describe('Данные типа встречи.').describe('Уже сохранённый тип встречи.')
+}).describe('Тип встречи, сохранённый этой попыткой.'),zod.object({
+  "status": zod.enum(['not_saved']).describe('Тип не был сохранён. Повторная отправка требует нового идентификатора.')
+}).describe('Попытка завершена без создания типа встречи.')]).describe('Результат проверки одной попытки создания.')
+
+
+export const MeetingTypesCheckBookingAttemptParams = zod.object({
+  "attemptId": zod.uuid().describe('Ключ из исходного запроса на запись.')
+})
+
+export const MeetingTypesCheckBookingAttemptResponse = zod.union([zod.object({
+  "status": zod.enum(['saved']).describe('Попытка создала встречу.'),
+  "meeting": zod.object({
+  "id": zod.string().describe('Уникальный идентификатор встречи.'),
+  "meetingTypeId": zod.string().describe('Идентификатор выбранного типа встречи.'),
+  "meetingTypeName": zod.string().describe('Название выбранного типа встречи на момент записи.'),
+  "ownerName": zod.string().describe('Имя владельца на момент записи.'),
+  "guestName": zod.string().describe('Имя гостя.'),
+  "guestEmail": zod.string().describe('Email гостя.'),
+  "startsAt": zod.iso.datetime({"offset":true}).describe('Момент начала встречи.'),
+  "endsAt": zod.iso.datetime({"offset":true}).describe('Момент окончания встречи.'),
+  "timeZone": zod.string().describe('Именованный часовой пояс владельца на момент записи.')
+}).describe('Подтверждение сохранённой встречи.').describe('Исходное подтверждение записи.')
+}).describe('Подтверждение сохранённой попытки записи.'),zod.object({
+  "status": zod.enum(['not_saved']).describe('Встреча не сохранена. Для новой записи нужен новый ключ.')
+}).describe('Попытка завершена без сохранения встречи.')]).describe('Результат проверки одной попытки записи.')
+
+
 export const MeetingTypesGetMeetingTypeParams = zod.object({
   "id": zod.string().describe('Идентификатор из прямой ссылки на тип встречи.')
 })
@@ -77,6 +130,75 @@ export const MeetingTypesGetMeetingTypeResponse = zod.object({
   "description": zod.string().max(meetingTypesGetMeetingTypeResponseDescriptionMax).optional().describe('Введите описание обычным текстом длиной до 1000 символов.'),
   "durationMinutes": zod.int().min(meetingTypesGetMeetingTypeResponseDurationMinutesMin).max(meetingTypesGetMeetingTypeResponseDurationMinutesMax).describe('Введите длительность в минутах целым числом от 5 до 480.')
 }).describe('Данные типа встречи.')
+
+
+export const MeetingTypesGetAvailabilityParams = zod.object({
+  "id": zod.string().describe('Идентификатор типа встречи.')
+})
+
+export const meetingTypesGetAvailabilityResponseDaysMin = 14;
+export const meetingTypesGetAvailabilityResponseDaysMax = 14;
+
+
+
+export const MeetingTypesGetAvailabilityResponse = zod.object({
+  "timeZone": zod.string().describe('Именованный часовой пояс владельца.'),
+  "days": zod.array(zod.object({
+  "date": zod.iso.date().describe('Дата в часовом поясе владельца.'),
+  "slots": zod.array(zod.object({
+  "startsAt": zod.iso.datetime({"offset":true}).describe('Момент начала встречи.'),
+  "endsAt": zod.iso.datetime({"offset":true}).describe('Момент окончания встречи.')
+}).describe('Доступное время для встречи.')).describe('Свободные слоты в порядке начала.')
+}).describe('Слоты на календарную дату владельца.')).min(meetingTypesGetAvailabilityResponseDaysMin).max(meetingTypesGetAvailabilityResponseDaysMax).describe('Календарные даты, включая даты без доступного времени.')
+}).describe('Доступность типа встречи на ближайшие 14 календарных дат.')
+
+
+export const MeetingTypesCreateBookingParams = zod.object({
+  "id": zod.string().describe('Идентификатор выбранного типа встречи.')
+})
+
+export const MeetingTypesCreateBookingHeader = zod.object({
+  "Idempotency-Key": zod.uuid().describe('Ключ попытки. Повтор с тем же ключом возвращает исходное подтверждение.')
+})
+
+export const meetingTypesCreateBookingBodyGuestNameMax = 100;
+
+export const meetingTypesCreateBookingBodyGuestEmailMax = 254;
+
+
+export const meetingTypesCreateBookingBodyGuestEmailRegExp = new RegExp('^[^@\\s]+@[^@\\s.]+(?:\\.[^@\\s.]+)+$');
+
+
+export const MeetingTypesCreateBookingBody = zod.object({
+  "startsAt": zod.iso.datetime({"offset":true}).describe('Выберите время встречи.'),
+  "guestName": zod.string().min(1).max(meetingTypesCreateBookingBodyGuestNameMax).describe('Введите имя длиной от 1 до 100 символов.'),
+  "guestEmail": zod.string().max(meetingTypesCreateBookingBodyGuestEmailMax).regex(meetingTypesCreateBookingBodyGuestEmailRegExp).describe('Введите корректный email без пробельных символов длиной до 254 символов.')
+}).describe('Поля формы записи.')
+
+export const MeetingTypesCreateBookingResponse = zod.object({
+  "id": zod.string().describe('Уникальный идентификатор встречи.'),
+  "meetingTypeId": zod.string().describe('Идентификатор выбранного типа встречи.'),
+  "meetingTypeName": zod.string().describe('Название выбранного типа встречи на момент записи.'),
+  "ownerName": zod.string().describe('Имя владельца на момент записи.'),
+  "guestName": zod.string().describe('Имя гостя.'),
+  "guestEmail": zod.string().describe('Email гостя.'),
+  "startsAt": zod.iso.datetime({"offset":true}).describe('Момент начала встречи.'),
+  "endsAt": zod.iso.datetime({"offset":true}).describe('Момент окончания встречи.'),
+  "timeZone": zod.string().describe('Именованный часовой пояс владельца на момент записи.')
+}).describe('Подтверждение сохранённой встречи.')
+
+
+export const ListUpcomingMeetingsResponse = zod.object({
+  "timeZone": zod.string().describe('Текущий именованный часовой пояс владельца.'),
+  "meetings": zod.array(zod.object({
+  "id": zod.string().describe('Уникальный идентификатор встречи.'),
+  "meetingTypeName": zod.string().describe('Название типа встречи на момент записи.'),
+  "guestName": zod.string().describe('Имя гостя.'),
+  "guestEmail": zod.string().describe('Email гостя.'),
+  "startsAt": zod.iso.datetime({"offset":true}).describe('Момент начала встречи.'),
+  "endsAt": zod.iso.datetime({"offset":true}).describe('Момент окончания встречи.')
+}).describe('Сохранённая встреча в списке владельца.')).describe('Встречи, начало которых строго позже текущего момента, от ближайшей к дальней.')
+}).describe('Предстоящие встречи всех типов.')
 
 
 export const HealthResponse = zod.object({

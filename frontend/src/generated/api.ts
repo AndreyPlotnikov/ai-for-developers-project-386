@@ -6,6 +6,173 @@
  * OpenAPI spec version: 0.0.0
  */
 /**
+ * Доступное время для встречи.
+ */
+export interface AvailabilitySlot {
+  /** Момент начала встречи. */
+  startsAt: string;
+  /** Момент окончания встречи. */
+  endsAt: string;
+}
+
+/**
+ * Слоты на календарную дату владельца.
+ */
+export interface AvailabilityDay {
+  /** Дата в часовом поясе владельца. */
+  date: string;
+  /** Свободные слоты в порядке начала. */
+  slots: AvailabilitySlot[];
+}
+
+/**
+ * Встреча не сохранена. Для новой записи нужен новый ключ.
+ */
+export type BookingAttemptAbsentStatus = typeof BookingAttemptAbsentStatus[keyof typeof BookingAttemptAbsentStatus];
+
+
+export const BookingAttemptAbsentStatus = {
+  not_saved: 'not_saved',
+} as const;
+
+/**
+ * Попытка завершена без сохранения встречи.
+ */
+export interface BookingAttemptAbsent {
+  /** Встреча не сохранена. Для новой записи нужен новый ключ. */
+  status: BookingAttemptAbsentStatus;
+}
+
+/**
+ * Ключ одной попытки записи.
+ */
+export type BookingAttemptId = string;
+
+/**
+ * Попытка создала встречу.
+ */
+export type BookingAttemptSavedStatus = typeof BookingAttemptSavedStatus[keyof typeof BookingAttemptSavedStatus];
+
+
+export const BookingAttemptSavedStatus = {
+  saved: 'saved',
+} as const;
+
+/**
+ * Подтверждение сохранённой встречи.
+ */
+export interface Meeting {
+  /** Уникальный идентификатор встречи. */
+  id: string;
+  /** Идентификатор выбранного типа встречи. */
+  meetingTypeId: string;
+  /** Название выбранного типа встречи на момент записи. */
+  meetingTypeName: string;
+  /** Имя владельца на момент записи. */
+  ownerName: string;
+  /** Имя гостя. */
+  guestName: string;
+  /** Email гостя. */
+  guestEmail: string;
+  /** Момент начала встречи. */
+  startsAt: string;
+  /** Момент окончания встречи. */
+  endsAt: string;
+  /** Именованный часовой пояс владельца на момент записи. */
+  timeZone: string;
+}
+
+/**
+ * Подтверждение сохранённой попытки записи.
+ */
+export interface BookingAttemptSaved {
+  /** Попытка создала встречу. */
+  status: BookingAttemptSavedStatus;
+  /** Исходное подтверждение записи. */
+  meeting: Meeting;
+}
+
+/**
+ * Результат проверки одной попытки записи.
+ */
+export type BookingAttemptResult = BookingAttemptSaved | BookingAttemptAbsent;
+
+/**
+ * Результат нельзя подтвердить сейчас.
+ */
+export type BookingAttemptUnknownCode = typeof BookingAttemptUnknownCode[keyof typeof BookingAttemptUnknownCode];
+
+
+export const BookingAttemptUnknownCode = {
+  unknown: 'unknown',
+} as const;
+
+/**
+ * Исход попытки пока неизвестен.
+ */
+export interface BookingAttemptUnknown {
+  /** Результат нельзя подтвердить сейчас. */
+  code: BookingAttemptUnknownCode;
+  /** Сообщение для гостя. */
+  message: string;
+}
+
+/**
+ * Поля формы записи.
+ */
+export interface BookingInput {
+  /** Выберите время встречи. */
+  startsAt: string;
+  /**
+     * Введите имя длиной от 1 до 100 символов.
+     * @minLength 1
+     * @maxLength 100
+     */
+  guestName: string;
+  /**
+     * Введите корректный email без пробельных символов длиной до 254 символов.
+     * @maxLength 254
+     * @pattern ^[^@\s]+@[^@\s.]+(?:\.[^@\s.]+)+$
+     */
+  guestEmail: string;
+}
+
+/**
+ * Встреча не была сохранена.
+ */
+export type BookingNotSavedCode = typeof BookingNotSavedCode[keyof typeof BookingNotSavedCode];
+
+
+export const BookingNotSavedCode = {
+  not_saved: 'not_saved',
+} as const;
+
+/**
+ * Попытка точно завершилась без сохранения.
+ */
+export interface BookingNotSaved {
+  /** Встреча не была сохранена. */
+  code: BookingNotSavedCode;
+  /** Сообщение для гостя. */
+  message: string;
+}
+
+/**
+ * Ошибки по имени поля.
+ */
+export type BookingValidationErrorFieldErrors = {[key: string]: string};
+
+/**
+ * Ошибки полей формы записи.
+ */
+export interface BookingValidationError {
+  /** Ошибки по имени поля. */
+  fieldErrors: BookingValidationErrorFieldErrors;
+  /** Общая ошибка запроса без привязки к полю. */
+  message?: string;
+}
+
+/**
  * Состояние доступного приложения.
  */
 export type HealthStatus = typeof HealthStatus[keyof typeof HealthStatus];
@@ -49,9 +216,93 @@ export interface MeetingType {
 }
 
 /**
+ * Тип не был сохранён. Повторная отправка требует нового идентификатора.
+ */
+export type MeetingTypeAttemptAbsentStatus = typeof MeetingTypeAttemptAbsentStatus[keyof typeof MeetingTypeAttemptAbsentStatus];
+
+
+export const MeetingTypeAttemptAbsentStatus = {
+  not_saved: 'not_saved',
+} as const;
+
+/**
+ * Попытка завершена без создания типа встречи.
+ */
+export interface MeetingTypeAttemptAbsent {
+  /** Тип не был сохранён. Повторная отправка требует нового идентификатора. */
+  status: MeetingTypeAttemptAbsentStatus;
+}
+
+/**
+ * Уникальный идентификатор одной попытки создания.
+ */
+export type MeetingTypeAttemptId = string;
+
+/**
+ * Попытка создала тип встречи.
+ */
+export type MeetingTypeAttemptSavedStatus = typeof MeetingTypeAttemptSavedStatus[keyof typeof MeetingTypeAttemptSavedStatus];
+
+
+export const MeetingTypeAttemptSavedStatus = {
+  saved: 'saved',
+} as const;
+
+/**
+ * Тип встречи, сохранённый этой попыткой.
+ */
+export interface MeetingTypeAttemptSaved {
+  /** Попытка создала тип встречи. */
+  status: MeetingTypeAttemptSavedStatus;
+  /** Уже сохранённый тип встречи. */
+  meetingType: MeetingType;
+}
+
+/**
+ * Результат проверки одной попытки создания.
+ */
+export type MeetingTypeAttemptResult = MeetingTypeAttemptSaved | MeetingTypeAttemptAbsent;
+
+/**
+ * Результат нельзя подтвердить сейчас.
+ */
+export type MeetingTypeAttemptUnknownCode = typeof MeetingTypeAttemptUnknownCode[keyof typeof MeetingTypeAttemptUnknownCode];
+
+
+export const MeetingTypeAttemptUnknownCode = {
+  unknown: 'unknown',
+} as const;
+
+/**
+ * Исход попытки пока неизвестен.
+ */
+export interface MeetingTypeAttemptUnknown {
+  /** Результат нельзя подтвердить сейчас. */
+  code: MeetingTypeAttemptUnknownCode;
+  /** Сообщение для владельца. */
+  message: string;
+}
+
+/**
+ * Доступность типа встречи на ближайшие 14 календарных дат.
+ */
+export interface MeetingTypeAvailability {
+  /** Именованный часовой пояс владельца. */
+  timeZone: string;
+  /**
+     * Календарные даты, включая даты без доступного времени.
+     * @minItems 14
+     * @maxItems 14
+     */
+  days: AvailabilityDay[];
+}
+
+/**
  * Каталог типов встреч.
  */
 export interface MeetingTypeCatalog {
+  /** Имя владельца календаря. */
+  ownerName: string;
   /** Доступные типы встреч. */
   meetingTypes: MeetingType[];
 }
@@ -122,6 +373,54 @@ export interface MeetingTypeValidationError {
   message?: string;
 }
 
+/**
+ * Требуется выбрать другой слот.
+ */
+export type SlotUnavailableCode = typeof SlotUnavailableCode[keyof typeof SlotUnavailableCode];
+
+
+export const SlotUnavailableCode = {
+  slot_unavailable: 'slot_unavailable',
+} as const;
+
+/**
+ * Выбранный слот больше недоступен.
+ */
+export interface SlotUnavailable {
+  /** Требуется выбрать другой слот. */
+  code: SlotUnavailableCode;
+  /** Сообщение для гостя. */
+  message: string;
+}
+
+/**
+ * Сохранённая встреча в списке владельца.
+ */
+export interface UpcomingMeeting {
+  /** Уникальный идентификатор встречи. */
+  id: string;
+  /** Название типа встречи на момент записи. */
+  meetingTypeName: string;
+  /** Имя гостя. */
+  guestName: string;
+  /** Email гостя. */
+  guestEmail: string;
+  /** Момент начала встречи. */
+  startsAt: string;
+  /** Момент окончания встречи. */
+  endsAt: string;
+}
+
+/**
+ * Предстоящие встречи всех типов.
+ */
+export interface UpcomingMeetings {
+  /** Текущий именованный часовой пояс владельца. */
+  timeZone: string;
+  /** Встречи, начало которых строго позже текущего момента, от ближайшей к дальней. */
+  meetings: UpcomingMeeting[];
+}
+
 export type meetingTypesListMeetingTypesResponse200 = {
   data: MeetingTypeCatalog
   status: 200
@@ -175,15 +474,20 @@ export type meetingTypesCreateMeetingTypeResponse400 = {
   status: 400
 }
 
-export type meetingTypesCreateMeetingTypeResponse503 = {
+export type meetingTypesCreateMeetingTypeResponse409 = {
   data: MeetingTypeSaveError
+  status: 409
+}
+
+export type meetingTypesCreateMeetingTypeResponse503 = {
+  data: MeetingTypeSaveError | MeetingTypeAttemptUnknown
   status: 503
 }
 
 export type meetingTypesCreateMeetingTypeResponseSuccess = (meetingTypesCreateMeetingTypeResponse201) & {
   headers: Headers;
 };
-export type meetingTypesCreateMeetingTypeResponseError = (meetingTypesCreateMeetingTypeResponse400 | meetingTypesCreateMeetingTypeResponse503) & {
+export type meetingTypesCreateMeetingTypeResponseError = (meetingTypesCreateMeetingTypeResponse400 | meetingTypesCreateMeetingTypeResponse409 | meetingTypesCreateMeetingTypeResponse503) & {
   headers: Headers;
 };
 
@@ -234,6 +538,116 @@ const res = await fetch(getMeetingTypesCreateMeetingTypeUrl(),
 
 
 
+export type meetingTypesCheckMeetingTypeAttemptResponse200 = {
+  data: MeetingTypeAttemptResult
+  status: 200
+}
+
+export type meetingTypesCheckMeetingTypeAttemptResponse400 = {
+  data: MeetingTypeValidationError
+  status: 400
+}
+
+export type meetingTypesCheckMeetingTypeAttemptResponse503 = {
+  data: MeetingTypeAttemptUnknown
+  status: 503
+}
+
+export type meetingTypesCheckMeetingTypeAttemptResponseSuccess = (meetingTypesCheckMeetingTypeAttemptResponse200) & {
+  headers: Headers;
+};
+export type meetingTypesCheckMeetingTypeAttemptResponseError = (meetingTypesCheckMeetingTypeAttemptResponse400 | meetingTypesCheckMeetingTypeAttemptResponse503) & {
+  headers: Headers;
+};
+
+export type meetingTypesCheckMeetingTypeAttemptResponse = (meetingTypesCheckMeetingTypeAttemptResponseSuccess | meetingTypesCheckMeetingTypeAttemptResponseError)
+
+export const getMeetingTypesCheckMeetingTypeAttemptUrl = (attemptId: MeetingTypeAttemptId,) => {
+
+
+
+
+  return `/api/meeting-types/attempts/${attemptId}/check`
+}
+
+/**
+ * Проверить исход попытки. Если тип не сохранён, проверка окончательно закрывает эту попытку.
+ */
+export const meetingTypesCheckMeetingTypeAttempt = async (attemptId: MeetingTypeAttemptId, options?: RequestInit): Promise<meetingTypesCheckMeetingTypeAttemptResponse> => {
+
+  const res = await fetch(getMeetingTypesCheckMeetingTypeAttemptUrl(attemptId),
+  {
+    ...options,
+    method: 'POST'
+
+
+  }
+)
+
+
+  const body = [204, 205, 304].includes(res.status) ? null : await res.text();
+
+  const data: meetingTypesCheckMeetingTypeAttemptResponse['data'] = body ? JSON.parse(body) : {}
+  return { data, status: res.status, headers: res.headers } as meetingTypesCheckMeetingTypeAttemptResponse
+}
+
+
+
+export type meetingTypesCheckBookingAttemptResponse200 = {
+  data: BookingAttemptResult
+  status: 200
+}
+
+export type meetingTypesCheckBookingAttemptResponse400 = {
+  data: BookingValidationError
+  status: 400
+}
+
+export type meetingTypesCheckBookingAttemptResponse503 = {
+  data: BookingAttemptUnknown
+  status: 503
+}
+
+export type meetingTypesCheckBookingAttemptResponseSuccess = (meetingTypesCheckBookingAttemptResponse200) & {
+  headers: Headers;
+};
+export type meetingTypesCheckBookingAttemptResponseError = (meetingTypesCheckBookingAttemptResponse400 | meetingTypesCheckBookingAttemptResponse503) & {
+  headers: Headers;
+};
+
+export type meetingTypesCheckBookingAttemptResponse = (meetingTypesCheckBookingAttemptResponseSuccess | meetingTypesCheckBookingAttemptResponseError)
+
+export const getMeetingTypesCheckBookingAttemptUrl = (attemptId: BookingAttemptId,) => {
+
+
+
+
+  return `/api/meeting-types/booking-attempts/${attemptId}/check`
+}
+
+/**
+ * Проверить исход записи. Если встречи нет, проверка окончательно закрывает попытку.
+ */
+export const meetingTypesCheckBookingAttempt = async (attemptId: BookingAttemptId, options?: RequestInit): Promise<meetingTypesCheckBookingAttemptResponse> => {
+
+  const res = await fetch(getMeetingTypesCheckBookingAttemptUrl(attemptId),
+  {
+    ...options,
+    method: 'POST'
+
+
+  }
+)
+
+
+  const body = [204, 205, 304].includes(res.status) ? null : await res.text();
+
+  const data: meetingTypesCheckBookingAttemptResponse['data'] = body ? JSON.parse(body) : {}
+  return { data, status: res.status, headers: res.headers } as meetingTypesCheckBookingAttemptResponse
+}
+
+
+
 export type meetingTypesGetMeetingTypeResponse200 = {
   data: MeetingType
   status: 200
@@ -280,6 +694,179 @@ export const meetingTypesGetMeetingType = async (id: string, options?: RequestIn
 
   const data: meetingTypesGetMeetingTypeResponse['data'] = body ? JSON.parse(body) : {}
   return { data, status: res.status, headers: res.headers } as meetingTypesGetMeetingTypeResponse
+}
+
+
+
+export type meetingTypesGetAvailabilityResponse200 = {
+  data: MeetingTypeAvailability
+  status: 200
+}
+
+export type meetingTypesGetAvailabilityResponse404 = {
+  data: MeetingTypeNotFound
+  status: 404
+}
+
+export type meetingTypesGetAvailabilityResponseSuccess = (meetingTypesGetAvailabilityResponse200) & {
+  headers: Headers;
+};
+export type meetingTypesGetAvailabilityResponseError = (meetingTypesGetAvailabilityResponse404) & {
+  headers: Headers;
+};
+
+export type meetingTypesGetAvailabilityResponse = (meetingTypesGetAvailabilityResponseSuccess | meetingTypesGetAvailabilityResponseError)
+
+export const getMeetingTypesGetAvailabilityUrl = (id: string,) => {
+
+
+
+
+  return `/api/meeting-types/${id}/availability`
+}
+
+/**
+ * Получить ближайшие даты и доступные слоты типа встречи.
+ */
+export const meetingTypesGetAvailability = async (id: string, options?: RequestInit): Promise<meetingTypesGetAvailabilityResponse> => {
+
+  const res = await fetch(getMeetingTypesGetAvailabilityUrl(id),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+)
+
+
+  const body = [204, 205, 304].includes(res.status) ? null : await res.text();
+
+  const data: meetingTypesGetAvailabilityResponse['data'] = body ? JSON.parse(body) : {}
+  return { data, status: res.status, headers: res.headers } as meetingTypesGetAvailabilityResponse
+}
+
+
+
+export type meetingTypesCreateBookingResponse201 = {
+  data: Meeting
+  status: 201
+}
+
+export type meetingTypesCreateBookingResponse400 = {
+  data: BookingValidationError
+  status: 400
+}
+
+export type meetingTypesCreateBookingResponse404 = {
+  data: MeetingTypeNotFound
+  status: 404
+}
+
+export type meetingTypesCreateBookingResponse409 = {
+  data: SlotUnavailable | BookingNotSaved
+  status: 409
+}
+
+export type meetingTypesCreateBookingResponse503 = {
+  data: BookingNotSaved | BookingAttemptUnknown
+  status: 503
+}
+
+export type meetingTypesCreateBookingResponseSuccess = (meetingTypesCreateBookingResponse201) & {
+  headers: Headers;
+};
+export type meetingTypesCreateBookingResponseError = (meetingTypesCreateBookingResponse400 | meetingTypesCreateBookingResponse404 | meetingTypesCreateBookingResponse409 | meetingTypesCreateBookingResponse503) & {
+  headers: Headers;
+};
+
+export type meetingTypesCreateBookingResponse = (meetingTypesCreateBookingResponseSuccess | meetingTypesCreateBookingResponseError)
+
+export const getMeetingTypesCreateBookingUrl = (id: string,) => {
+
+
+
+
+  return `/api/meeting-types/${id}/bookings`
+}
+
+/**
+ * Сохранить запись на встречу или вернуть подтверждение уже сохранённой попытки.
+ */
+export const meetingTypesCreateBooking = async (id: string,
+    bookingInput: BookingInput, options?: RequestInit): Promise<meetingTypesCreateBookingResponse> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+const res = await fetch(getMeetingTypesCreateBookingUrl(id),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(bookingInput)
+  }
+)
+
+
+  const body = [204, 205, 304].includes(res.status) ? null : await res.text();
+
+  const data: meetingTypesCreateBookingResponse['data'] = body ? JSON.parse(body) : {}
+  return { data, status: res.status, headers: res.headers } as meetingTypesCreateBookingResponse
+}
+
+
+
+export type listUpcomingMeetingsResponse200 = {
+  data: UpcomingMeetings
+  status: 200
+}
+
+export type listUpcomingMeetingsResponseSuccess = (listUpcomingMeetingsResponse200) & {
+  headers: Headers;
+};
+;
+
+export type listUpcomingMeetingsResponse = (listUpcomingMeetingsResponseSuccess)
+
+export const getListUpcomingMeetingsUrl = () => {
+
+
+
+
+  return `/api/owner/meetings`
+}
+
+/**
+ * Получить предстоящие встречи владельца.
+ */
+export const listUpcomingMeetings = async ( options?: RequestInit): Promise<listUpcomingMeetingsResponse> => {
+
+  const res = await fetch(getListUpcomingMeetingsUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+)
+
+
+  const body = [204, 205, 304].includes(res.status) ? null : await res.text();
+
+  const data: listUpcomingMeetingsResponse['data'] = body ? JSON.parse(body) : {}
+  return { data, status: res.status, headers: res.headers } as listUpcomingMeetingsResponse
 }
 
 

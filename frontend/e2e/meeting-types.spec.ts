@@ -130,7 +130,10 @@ test("a guest can retry an initial catalog failure using the keyboard", async ({
 test("a failed catalog refresh keeps the previously loaded types visible", async ({ page }) => {
   await page.route("**/api/meeting-types", (route) =>
     route.fulfill({
-      json: { meetingTypes: [{ id: "type-1", name: "Знакомство", durationMinutes: 15 }] },
+      json: {
+        ownerName: "Андрей Плотников",
+        meetingTypes: [{ id: "type-1", name: "Знакомство", durationMinutes: 15 }],
+      },
     }),
   );
   await page.goto("/book");
@@ -149,4 +152,78 @@ test("an unknown meeting type offers a link back to the catalog", async ({ page 
   await expect(page.getByRole("heading", { name: "Тип встречи не найден" })).toBeVisible();
   await page.getByRole("link", { name: "К каталогу типов встреч" }).click();
   await expect(page.getByRole("heading", { name: "Выберите тип встречи" })).toBeVisible();
+});
+
+test("the owner checks the same creation after losing the response and reloading", async ({
+  page,
+}) => {
+  await page.goto("/admin/meeting-types/new");
+  const name = page.getByRole("textbox", { name: "Название" });
+  const description = page.getByRole("textbox", { name: "Описание (необязательно)" });
+  const duration = page.getByRole("textbox", { name: "Длительность (минуты)" });
+  await name.fill("  Восстановленная консультация  ");
+  await description.fill("Обсудим восстановление");
+  await duration.fill("45");
+
+  await page.route(
+    "**/api/meeting-types",
+    async (route) => {
+      const saved = await route.fetch();
+      expect(saved.status()).toBe(201);
+      await route.abort("failed");
+    },
+    { times: 1 },
+  );
+  await page.getByRole("button", { name: "Создать", exact: true }).click();
+  await expect(page.getByRole("alert")).toContainText("Результат сохранения неизвестен");
+
+  await page.reload();
+  const check = page.getByRole("button", { name: "Проверить результат" });
+  await expect(check).toBeFocused();
+  await expect(name).toHaveValue("  Восстановленная консультация  ");
+  await expect(description).toHaveValue("Обсудим восстановление");
+  await expect(duration).toHaveValue("45");
+  await expect(name).toBeDisabled();
+
+  await page.route("**/api/meeting-types/attempts/*/check", (route) => route.abort("failed"), {
+    times: 1,
+  });
+  await check.press("Enter");
+  await expect(page.getByRole("alert")).toContainText("Результат сохранения неизвестен");
+  await expect(check).toBeFocused();
+
+  await page.reload();
+  await expect(description).toHaveValue("Обсудим восстановление");
+  await check.press("Enter");
+  await expect(page.getByRole("heading", { name: "Тип встречи создан" })).toBeFocused();
+  await expect(page.getByText("Восстановленная консультация", { exact: true })).toBeVisible();
+  await expect(page.getByRole("link", { name: "Открыть страницу типа встречи" })).toBeVisible();
+});
+
+test("the owner can resubmit the preserved form after confirming that no type was created", async ({
+  page,
+}) => {
+  await page.goto("/admin/meeting-types/new");
+  const name = page.getByRole("textbox", { name: "Название" });
+  const description = page.getByRole("textbox", { name: "Описание (необязательно)" });
+  const duration = page.getByRole("textbox", { name: "Длительность (минуты)" });
+  await name.fill("Новый тип после проверки");
+  await description.fill("Описание сохранено");
+  await duration.fill("25");
+
+  await page.route("**/api/meeting-types", (route) => route.abort("failed"), { times: 1 });
+  await page.getByRole("button", { name: "Создать", exact: true }).click();
+  await expect(page.getByRole("alert")).toContainText("Результат сохранения неизвестен");
+  await page.reload();
+  await page.getByRole("button", { name: "Проверить результат" }).press("Enter");
+
+  await expect(page.getByRole("alert")).toContainText("Не удалось сохранить тип встречи");
+  await expect(name).toHaveValue("Новый тип после проверки");
+  await expect(description).toHaveValue("Описание сохранено");
+  await expect(duration).toHaveValue("25");
+  await expect(name).toBeEnabled();
+  const retry = page.getByRole("button", { name: "Повторить сохранение" });
+  await expect(retry).toBeFocused();
+  await retry.press("Enter");
+  await expect(page.getByRole("heading", { name: "Тип встречи создан" })).toBeFocused();
 });

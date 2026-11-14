@@ -27,6 +27,5 @@ jobs:
         with:
           version: 2026.10.25
       - run: mise run install
+      - run: pnpm --dir frontend exec playwright install-deps chromium-headless-shell
       - run: mise run check
-      - run: pnpm --dir frontend exec playwright install --with-deps --only-shell chromium
-      - run: pnpm --dir frontend test:e2e

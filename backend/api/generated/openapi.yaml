@@ -5,6 +5,7 @@ info:
   version: 0.0.0
 tags:
   - name: Health
+  - name: Owner
   - name: Meeting types
 paths:
   /api/meeting-types:
@@ -20,13 +21,20 @@ paths:
               schema:
                 $ref: '#/components/schemas/MeetingTypeCatalog'
               example:
+                ownerName: Андрей Плотников
                 meetingTypes: []
       tags:
         - Meeting types
     post:
       operationId: MeetingTypes_createMeetingType
       description: Сохранить новый тип встречи и вернуть данные для прямой ссылки.
-      parameters: []
+      parameters:
+        - name: Idempotency-Key
+          in: header
+          required: false
+          description: Ключ попытки. Повтор с тем же ключом возвращает результат этой попытки.
+          schema:
+            $ref: '#/components/schemas/MeetingTypeAttemptId'
       responses:
         '201':
           description: The request has succeeded and a new resource has been created as a result.
@@ -47,12 +55,26 @@ paths:
               example:
                 fieldErrors:
                   durationMinutes: Введите целое число от 5 до 480
+        '409':
+          description: The request conflicts with the current state of the server.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MeetingTypeSaveError'
+              example:
+                code: not_saved
+                message: Попытка завершена без сохранения типа встречи
         '503':
           description: Service unavailable.
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/MeetingTypeSaveError'
+                anyOf:
+                  - $ref: '#/components/schemas/MeetingTypeSaveError'
+                  - $ref: '#/components/schemas/MeetingTypeAttemptUnknown'
+              example:
+                code: unknown
+                message: Результат сохранения неизвестен
       tags:
         - Meeting types
       requestBody:
@@ -65,6 +87,74 @@ paths:
               name: Консультация
               durationMinutes: 30
         description: Поля формы создания типа встречи.
+  /api/meeting-types/attempts/{attemptId}/check:
+    post:
+      operationId: MeetingTypes_checkMeetingTypeAttempt
+      description: Проверить исход попытки. Если тип не сохранён, проверка окончательно закрывает эту попытку.
+      parameters:
+        - name: attemptId
+          in: path
+          required: true
+          description: Ключ из исходного запроса на создание.
+          schema:
+            $ref: '#/components/schemas/MeetingTypeAttemptId'
+      responses:
+        '200':
+          description: The request has succeeded.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MeetingTypeAttemptResult'
+              example:
+                status: not_saved
+        '400':
+          description: The server could not understand the request due to invalid syntax.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MeetingTypeValidationError'
+        '503':
+          description: Service unavailable.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MeetingTypeAttemptUnknown'
+      tags:
+        - Meeting types
+  /api/meeting-types/booking-attempts/{attemptId}/check:
+    post:
+      operationId: MeetingTypes_checkBookingAttempt
+      description: Проверить исход записи. Если встречи нет, проверка окончательно закрывает попытку.
+      parameters:
+        - name: attemptId
+          in: path
+          required: true
+          description: Ключ из исходного запроса на запись.
+          schema:
+            $ref: '#/components/schemas/BookingAttemptId'
+      responses:
+        '200':
+          description: The request has succeeded.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BookingAttemptResult'
+              example:
+                status: not_saved
+        '400':
+          description: The server could not understand the request due to invalid syntax.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BookingValidationError'
+        '503':
+          description: Service unavailable.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BookingAttemptUnknown'
+      tags:
+        - Meeting types
   /api/meeting-types/{id}:
     get:
       operationId: MeetingTypes_getMeetingType
@@ -91,6 +181,110 @@ paths:
                 $ref: '#/components/schemas/MeetingTypeNotFound'
       tags:
         - Meeting types
+  /api/meeting-types/{id}/availability:
+    get:
+      operationId: MeetingTypes_getAvailability
+      description: Получить ближайшие даты и доступные слоты типа встречи.
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Идентификатор типа встречи.
+          schema:
+            type: string
+      responses:
+        '200':
+          description: The request has succeeded.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MeetingTypeAvailability'
+        '404':
+          description: The server cannot find the requested resource.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MeetingTypeNotFound'
+      tags:
+        - Meeting types
+  /api/meeting-types/{id}/bookings:
+    post:
+      operationId: MeetingTypes_createBooking
+      description: Сохранить запись на встречу или вернуть подтверждение уже сохранённой попытки.
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Идентификатор выбранного типа встречи.
+          schema:
+            type: string
+        - name: Idempotency-Key
+          in: header
+          required: true
+          description: Ключ попытки. Повтор с тем же ключом возвращает исходное подтверждение.
+          schema:
+            $ref: '#/components/schemas/BookingAttemptId'
+      responses:
+        '201':
+          description: The request has succeeded and a new resource has been created as a result.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Meeting'
+        '400':
+          description: The server could not understand the request due to invalid syntax.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BookingValidationError'
+        '404':
+          description: The server cannot find the requested resource.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MeetingTypeNotFound'
+        '409':
+          description: The request conflicts with the current state of the server.
+          content:
+            application/json:
+              schema:
+                anyOf:
+                  - $ref: '#/components/schemas/SlotUnavailable'
+                  - $ref: '#/components/schemas/BookingNotSaved'
+        '503':
+          description: Service unavailable.
+          content:
+            application/json:
+              schema:
+                anyOf:
+                  - $ref: '#/components/schemas/BookingNotSaved'
+                  - $ref: '#/components/schemas/BookingAttemptUnknown'
+      tags:
+        - Meeting types
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/BookingInput'
+        description: Момент начала, имя и email гостя. Пробелы по краям имени удаляются.
+  /api/owner/meetings:
+    get:
+      operationId: listUpcomingMeetings
+      description: Получить предстоящие встречи владельца.
+      parameters: []
+      responses:
+        '200':
+          description: The request has succeeded.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UpcomingMeetings'
+              example:
+                timeZone: Europe/Moscow
+                meetings: []
+      tags:
+        - Owner
   /health:
     get:
       operationId: health
@@ -109,6 +303,156 @@ paths:
         - Health
 components:
   schemas:
+    AvailabilityDay:
+      type: object
+      required:
+        - date
+        - slots
+      properties:
+        date:
+          type: string
+          format: date
+          description: Дата в часовом поясе владельца.
+          example: '2026-02-02'
+        slots:
+          type: array
+          items:
+            $ref: '#/components/schemas/AvailabilitySlot'
+          description: Свободные слоты в порядке начала.
+          example: []
+      description: Слоты на календарную дату владельца.
+    AvailabilitySlot:
+      type: object
+      required:
+        - startsAt
+        - endsAt
+      properties:
+        startsAt:
+          type: string
+          format: date-time
+          description: Момент начала встречи.
+          example: '2026-02-02T06:15:00Z'
+        endsAt:
+          type: string
+          format: date-time
+          description: Момент окончания встречи.
+          example: '2026-02-02T06:45:00Z'
+      description: Доступное время для встречи.
+    BookingAttemptAbsent:
+      type: object
+      required:
+        - status
+      properties:
+        status:
+          type: string
+          enum:
+            - not_saved
+          description: Встреча не сохранена. Для новой записи нужен новый ключ.
+          example: not_saved
+      description: Попытка завершена без сохранения встречи.
+    BookingAttemptId:
+      type: string
+      format: uuid
+      description: Ключ одной попытки записи.
+      example: 88f6cbf1-5158-4b80-9476-777326aec804
+    BookingAttemptResult:
+      anyOf:
+        - $ref: '#/components/schemas/BookingAttemptSaved'
+        - $ref: '#/components/schemas/BookingAttemptAbsent'
+      description: Результат проверки одной попытки записи.
+    BookingAttemptSaved:
+      type: object
+      required:
+        - status
+        - meeting
+      properties:
+        status:
+          type: string
+          enum:
+            - saved
+          description: Попытка создала встречу.
+          example: saved
+        meeting:
+          allOf:
+            - $ref: '#/components/schemas/Meeting'
+          description: Исходное подтверждение записи.
+      description: Подтверждение сохранённой попытки записи.
+    BookingAttemptUnknown:
+      type: object
+      required:
+        - code
+        - message
+      properties:
+        code:
+          type: string
+          enum:
+            - unknown
+          description: Результат нельзя подтвердить сейчас.
+          example: unknown
+        message:
+          type: string
+          description: Сообщение для гостя.
+          example: Результат сохранения неизвестен
+      description: Исход попытки пока неизвестен.
+    BookingInput:
+      type: object
+      required:
+        - startsAt
+        - guestName
+        - guestEmail
+      properties:
+        startsAt:
+          type: string
+          format: date-time
+          description: Выберите время встречи.
+          example: '2026-02-02T06:15:00Z'
+        guestName:
+          type: string
+          minLength: 1
+          maxLength: 100
+          description: Введите имя длиной от 1 до 100 символов.
+          example: Алекс
+        guestEmail:
+          type: string
+          maxLength: 254
+          pattern: ^[^@\s]+@[^@\s.]+(?:\.[^@\s.]+)+$
+          description: Введите корректный email без пробельных символов длиной до 254 символов.
+          example: a@b.c
+      description: Поля формы записи.
+    BookingNotSaved:
+      type: object
+      required:
+        - code
+        - message
+      properties:
+        code:
+          type: string
+          enum:
+            - not_saved
+          description: Встреча не была сохранена.
+          example: not_saved
+        message:
+          type: string
+          description: Сообщение для гостя.
+          example: Не удалось сохранить встречу. Повторите сохранение.
+      description: Попытка точно завершилась без сохранения.
+    BookingValidationError:
+      type: object
+      required:
+        - fieldErrors
+      properties:
+        fieldErrors:
+          type: object
+          additionalProperties:
+            type: string
+          description: Ошибки по имени поля.
+          example:
+            guestEmail: Введите корректный email длиной до 254 символов.
+        message:
+          type: string
+          description: Общая ошибка запроса без привязки к полю.
+          example: Некорректное тело запроса
+      description: Ошибки полей формы записи.
     Health:
       type: object
       required:
@@ -123,6 +467,58 @@ components:
       description: Состояние приложения.
       example:
         status: ok
+    Meeting:
+      type: object
+      required:
+        - id
+        - meetingTypeId
+        - meetingTypeName
+        - ownerName
+        - guestName
+        - guestEmail
+        - startsAt
+        - endsAt
+        - timeZone
+      properties:
+        id:
+          type: string
+          description: Уникальный идентификатор встречи.
+          example: f9ae5308-2bc7-4590-b3cb-4f265025f281
+        meetingTypeId:
+          type: string
+          description: Идентификатор выбранного типа встречи.
+          example: 451f0834-690a-4312-8efb-ec573c057493
+        meetingTypeName:
+          type: string
+          description: Название выбранного типа встречи на момент записи.
+          example: Консультация
+        ownerName:
+          type: string
+          description: Имя владельца на момент записи.
+          example: Андрей Плотников
+        guestName:
+          type: string
+          description: Имя гостя.
+          example: Алекс
+        guestEmail:
+          type: string
+          description: Email гостя.
+          example: a@b.c
+        startsAt:
+          type: string
+          format: date-time
+          description: Момент начала встречи.
+          example: '2026-02-02T06:15:00Z'
+        endsAt:
+          type: string
+          format: date-time
+          description: Момент окончания встречи.
+          example: '2026-02-02T06:45:00Z'
+        timeZone:
+          type: string
+          description: Именованный часовой пояс владельца на момент записи.
+          example: Europe/Moscow
+      description: Подтверждение сохранённой встречи.
     MeetingType:
       type: object
       required:
@@ -153,11 +549,90 @@ components:
           description: Введите длительность в минутах целым числом от 5 до 480.
           example: 30
       description: Данные типа встречи.
+    MeetingTypeAttemptAbsent:
+      type: object
+      required:
+        - status
+      properties:
+        status:
+          type: string
+          enum:
+            - not_saved
+          description: Тип не был сохранён. Повторная отправка требует нового идентификатора.
+          example: not_saved
+      description: Попытка завершена без создания типа встречи.
+    MeetingTypeAttemptId:
+      type: string
+      format: uuid
+      description: Уникальный идентификатор одной попытки создания.
+      example: 88f6cbf1-5158-4b80-9476-777326aec804
+    MeetingTypeAttemptResult:
+      anyOf:
+        - $ref: '#/components/schemas/MeetingTypeAttemptSaved'
+        - $ref: '#/components/schemas/MeetingTypeAttemptAbsent'
+      description: Результат проверки одной попытки создания.
+    MeetingTypeAttemptSaved:
+      type: object
+      required:
+        - status
+        - meetingType
+      properties:
+        status:
+          type: string
+          enum:
+            - saved
+          description: Попытка создала тип встречи.
+          example: saved
+        meetingType:
+          allOf:
+            - $ref: '#/components/schemas/MeetingType'
+          description: Уже сохранённый тип встречи.
+      description: Тип встречи, сохранённый этой попыткой.
+    MeetingTypeAttemptUnknown:
+      type: object
+      required:
+        - code
+        - message
+      properties:
+        code:
+          type: string
+          enum:
+            - unknown
+          description: Результат нельзя подтвердить сейчас.
+          example: unknown
+        message:
+          type: string
+          description: Сообщение для владельца.
+          example: Результат сохранения неизвестен
+      description: Исход попытки пока неизвестен.
+    MeetingTypeAvailability:
+      type: object
+      required:
+        - timeZone
+        - days
+      properties:
+        timeZone:
+          type: string
+          description: Именованный часовой пояс владельца.
+          example: Europe/Moscow
+        days:
+          type: array
+          items:
+            $ref: '#/components/schemas/AvailabilityDay'
+          minItems: 14
+          maxItems: 14
+          description: Календарные даты, включая даты без доступного времени.
+      description: Доступность типа встречи на ближайшие 14 календарных дат.
     MeetingTypeCatalog:
       type: object
       required:
+        - ownerName
         - meetingTypes
       properties:
+        ownerName:
+          type: string
+          description: Имя владельца календаря.
+          example: Андрей Плотников
         meetingTypes:
           type: array
           items:
@@ -237,6 +712,77 @@ components:
           description: Общая ошибка запроса без привязки к полю.
           example: Некорректное тело запроса
       description: Ошибки полей формы создания.
+    SlotUnavailable:
+      type: object
+      required:
+        - code
+        - message
+      properties:
+        code:
+          type: string
+          enum:
+            - slot_unavailable
+          description: Требуется выбрать другой слот.
+          example: slot_unavailable
+        message:
+          type: string
+          description: Сообщение для гостя.
+          example: Выбранное время больше недоступно. Выберите другой слот.
+      description: Выбранный слот больше недоступен.
+    UpcomingMeeting:
+      type: object
+      required:
+        - id
+        - meetingTypeName
+        - guestName
+        - guestEmail
+        - startsAt
+        - endsAt
+      properties:
+        id:
+          type: string
+          description: Уникальный идентификатор встречи.
+          example: f9ae5308-2bc7-4590-b3cb-4f265025f281
+        meetingTypeName:
+          type: string
+          description: Название типа встречи на момент записи.
+          example: Консультация
+        guestName:
+          type: string
+          description: Имя гостя.
+          example: Алекс
+        guestEmail:
+          type: string
+          description: Email гостя.
+          example: a@b.c
+        startsAt:
+          type: string
+          format: date-time
+          description: Момент начала встречи.
+          example: '2026-02-02T06:15:00Z'
+        endsAt:
+          type: string
+          format: date-time
+          description: Момент окончания встречи.
+          example: '2026-02-02T06:45:00Z'
+      description: Сохранённая встреча в списке владельца.
+    UpcomingMeetings:
+      type: object
+      required:
+        - timeZone
+        - meetings
+      properties:
+        timeZone:
+          type: string
+          description: Текущий именованный часовой пояс владельца.
+          example: Europe/Moscow
+        meetings:
+          type: array
+          items:
+            $ref: '#/components/schemas/UpcomingMeeting'
+          description: Встречи, начало которых строго позже текущего момента, от ближайшей к дальней.
+          example: []
+      description: Предстоящие встречи всех типов.
 servers:
   - url: /
     description: Текущий сервер приложения

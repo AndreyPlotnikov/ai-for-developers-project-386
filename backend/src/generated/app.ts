@@ -8,13 +8,23 @@
 import { Hono } from 'hono';
 import { meetingTypesListMeetingTypesHandlers } from '../handlers/meetingTypesListMeetingTypes.js';
 import { meetingTypesCreateMeetingTypeHandlers } from '../handlers/meetingTypesCreateMeetingType.js';
+import { meetingTypesCheckMeetingTypeAttemptHandlers } from '../handlers/meetingTypesCheckMeetingTypeAttempt.js';
+import { meetingTypesCheckBookingAttemptHandlers } from '../handlers/meetingTypesCheckBookingAttempt.js';
 import { meetingTypesGetMeetingTypeHandlers } from '../handlers/meetingTypesGetMeetingType.js';
+import { meetingTypesGetAvailabilityHandlers } from '../handlers/meetingTypesGetAvailability.js';
+import { meetingTypesCreateBookingHandlers } from '../handlers/meetingTypesCreateBooking.js';
+import { listUpcomingMeetingsHandlers } from '../handlers/listUpcomingMeetings.js';
 import { healthHandlers } from '../handlers/health.js';
 
 const app = new Hono()
   .get('/api/meeting-types', ...meetingTypesListMeetingTypesHandlers)
   .post('/api/meeting-types', ...meetingTypesCreateMeetingTypeHandlers)
+  .post('/api/meeting-types/attempts/:attemptId/check', ...meetingTypesCheckMeetingTypeAttemptHandlers)
+  .post('/api/meeting-types/booking-attempts/:attemptId/check', ...meetingTypesCheckBookingAttemptHandlers)
   .get('/api/meeting-types/:id', ...meetingTypesGetMeetingTypeHandlers)
+  .get('/api/meeting-types/:id/availability', ...meetingTypesGetAvailabilityHandlers)
+  .post('/api/meeting-types/:id/bookings', ...meetingTypesCreateBookingHandlers)
+  .get('/api/owner/meetings', ...listUpcomingMeetingsHandlers)
   .get('/health', ...healthHandlers);
 
 export default app;

@@ -57,9 +57,11 @@ run = [
   "jactionlint",
   "betterleaks git --redact --no-banner",
   "osv-scanner scan source -L backend/pnpm-lock.yaml -L frontend/pnpm-lock.yaml",
-  "check-jsonschema --builtin-schema vendor.github-workflows .github/workflows/check.yml .github/workflows/hexlet-check.yml",
+  "check-jsonschema --builtin-schema vendor.github-workflows .github/workflows/check.yml .github/workflows/hexlet-check.yml .github/workflows/release-please.yml",
   "check-jsonschema --builtin-schema vendor.renovate renovate.json",
   "check-jsonschema --schemafile backend/node_modules/knip/schema.json backend/knip.json frontend/knip.json",
+  "pnpm --dir frontend exec playwright install --only-shell chromium",
+  "pnpm --dir frontend test:e2e",
 ]
 
 [daemons.backend]
