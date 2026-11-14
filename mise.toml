@@ -30,6 +30,14 @@ run = [
 description = "Install dependencies and repository Git hooks"
 run = ["mise run install", "hk install --mise"]
 
+[tasks."lint:openapi"]
+description = "Lint the generated OpenAPI specification"
+run = "vacuum lint backend/api/generated/openapi.yaml --no-style"
+
+[tasks."check:openapi"]
+description = "Generate OpenAPI from TypeSpec and lint it"
+run = ["pnpm --dir backend generate:openapi", "mise run lint:openapi"]
+
 [tasks.check]
 description = "Run all project checks"
 run = [
@@ -40,6 +48,7 @@ run = [
   "pnpm --dir frontend lint",
   "pnpm --dir frontend format:check",
   "node scripts/check-generated.mjs",
+  "mise run lint:openapi",
   "pnpm --dir frontend build",
   "pnpm --dir backend exec knip --directory . --no-progress",
   "pnpm --dir backend exec knip --directory ../frontend --no-progress",
@@ -51,7 +60,6 @@ run = [
   "check-jsonschema --builtin-schema vendor.github-workflows .github/workflows/check.yml .github/workflows/hexlet-check.yml",
   "check-jsonschema --builtin-schema vendor.renovate renovate.json",
   "check-jsonschema --schemafile backend/node_modules/knip/schema.json backend/knip.json frontend/knip.json",
-  "vacuum lint backend/api/generated/openapi.yaml --no-style",
 ]
 
 [daemons.backend]
