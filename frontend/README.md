@@ -6,14 +6,16 @@ React, TypeScript, Vite и Mantine. Инструкции по установке
 
 ## E2E-тесты
 
-После `mise run install` установите Chromium и запустите тесты из корня проекта.
+`mise run check` из корня проекта запускает E2E-тесты локально и в CI. Команда устанавливает нужную версию Chromium Headless Shell. Если на Linux не хватает системных библиотек, установите их командой `mise exec -- pnpm --dir frontend exec playwright install-deps chromium-headless-shell`.
+
+Для отдельного запуска E2E после `mise run install` выполните:
 
 ```bash
 mise exec -- pnpm --dir frontend exec playwright install --only-shell chromium
 mise exec -- pnpm --dir frontend test:e2e
 ```
 
-Playwright запускает Hono и Vite на свободных локальных портах. Для каждого прогона создаётся SQLite в памяти. GitHub Actions запускает эти тесты после `mise run check`. Трассы упавших тестов доступны в `frontend/test-results/`.
+Playwright запускает Hono и Vite на свободных локальных портах. Для каждого прогона создаётся SQLite в памяти. Трассы упавших тестов доступны в `frontend/test-results/`.
 
 Для проверки собранного приложения укажите адрес [контейнера](../README.md#запуск-в-docker) с новым пустым томом. Тесты создают типы встреч и записи.
 
