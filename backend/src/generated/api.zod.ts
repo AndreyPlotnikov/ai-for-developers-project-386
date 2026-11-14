@@ -89,6 +89,28 @@ export const MeetingTypesCheckMeetingTypeAttemptResponse = zod.union([zod.object
 }).describe('Попытка завершена без создания типа встречи.')]).describe('Результат проверки одной попытки создания.')
 
 
+export const MeetingTypesCheckBookingAttemptParams = zod.object({
+  "attemptId": zod.uuid().describe('Ключ из исходного запроса на запись.')
+})
+
+export const MeetingTypesCheckBookingAttemptResponse = zod.union([zod.object({
+  "status": zod.enum(['saved']).describe('Попытка создала встречу.'),
+  "meeting": zod.object({
+  "id": zod.string().describe('Уникальный идентификатор встречи.'),
+  "meetingTypeId": zod.string().describe('Идентификатор выбранного типа встречи.'),
+  "meetingTypeName": zod.string().describe('Название выбранного типа встречи на момент записи.'),
+  "ownerName": zod.string().describe('Имя владельца на момент записи.'),
+  "guestName": zod.string().describe('Имя гостя.'),
+  "guestEmail": zod.string().describe('Email гостя.'),
+  "startsAt": zod.iso.datetime({"offset":true}).describe('Момент начала встречи.'),
+  "endsAt": zod.iso.datetime({"offset":true}).describe('Момент окончания встречи.'),
+  "timeZone": zod.string().describe('Именованный часовой пояс владельца на момент записи.')
+}).describe('Подтверждение сохранённой встречи.').describe('Исходное подтверждение записи.')
+}).describe('Подтверждение сохранённой попытки записи.'),zod.object({
+  "status": zod.enum(['not_saved']).describe('Встреча не сохранена. Для новой записи нужен новый ключ.')
+}).describe('Попытка завершена без сохранения встречи.')]).describe('Результат проверки одной попытки записи.')
+
+
 export const MeetingTypesGetMeetingTypeParams = zod.object({
   "id": zod.string().describe('Идентификатор из прямой ссылки на тип встречи.')
 })

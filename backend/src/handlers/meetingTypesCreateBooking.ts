@@ -65,6 +65,14 @@ export const meetingTypesCreateBookingHandlers = factory.createHandlers(
           },
           409,
         );
+      case "attempt_closed":
+        return c.json(
+          {
+            code: "not_saved",
+            message: "Попытка завершена без сохранения встречи. Выберите время.",
+          },
+          409,
+        );
       case "not_saved":
         return c.json(
           { code: "not_saved", message: "Не удалось сохранить встречу. Повторите сохранение." },

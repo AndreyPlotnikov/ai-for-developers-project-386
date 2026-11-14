@@ -219,3 +219,56 @@ test("reports a confirmed storage failure and accepts a new booking after storag
 
   expect((await book(app, id)).status).toBe(201);
 });
+
+function checkBookingAttempt(app: App, key: string) {
+  return app.request(`/api/meeting-types/booking-attempts/${key}/check`, { method: "POST" });
+}
+
+test("checks a saved booking after restarting and returns the original confirmation", async () => {
+  using directory = mkdtempDisposableSync(join(tmpdir(), "booking-check-"));
+  const path = join(directory.path, "calendar.sqlite");
+  const key = randomUUID();
+  let confirmation: unknown;
+  {
+    using database = new DatabaseSync(path);
+    const app = createApp(database, options);
+    const saved = await book(app, await createType(app), input, key);
+    expect(saved.status).toBe(201);
+    confirmation = await saved.json();
+  }
+  using database = new DatabaseSync(path);
+  const app = createApp(database, options);
+  const otherType = await createType(app);
+  const checked = await checkBookingAttempt(app, key.toUpperCase());
+  expect(checked.status).toBe(200);
+  expect(await checked.json()).toEqual({ status: "saved", meeting: confirmation });
+  expect(await firstDayStarts(app, otherType)).not.toContain(input.startsAt);
+  expect(await firstDayStarts(app, otherType)).toContain("2026-02-02T06:45:00Z");
+});
+
+test("closes an unsaved attempt before a delayed request can create a meeting", async () => {
+  using directory = mkdtempDisposableSync(join(tmpdir(), "booking-absent-"));
+  const path = join(directory.path, "calendar.sqlite");
+  const key = randomUUID();
+  let id: string;
+  {
+    using database = new DatabaseSync(path);
+    const app = createApp(database, options);
+    id = await createType(app);
+    using readOnly = new DatabaseSync(path, { readOnly: true });
+    const unknown = await checkBookingAttempt(createApp(readOnly, options), key);
+    expect(unknown.status).toBe(503);
+    expect(await unknown.json()).toMatchObject({ code: "unknown" });
+    const checked = await checkBookingAttempt(app, key);
+    expect(checked.status).toBe(200);
+    expect(await checked.json()).toEqual({ status: "not_saved" });
+  }
+  using database = new DatabaseSync(path);
+  const app = createApp(database, options);
+  const delayed = await book(app, id, input, key);
+  expect(delayed.status).toBe(409);
+  expect(await delayed.json()).toMatchObject({ code: "not_saved" });
+  expect(await firstDayStarts(app, id)).toContain(input.startsAt);
+  expect(await (await checkBookingAttempt(app, key)).json()).toEqual({ status: "not_saved" });
+  expect((await book(app, id)).status).toBe(201);
+});

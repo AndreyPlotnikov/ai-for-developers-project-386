@@ -26,9 +26,76 @@ export interface AvailabilityDay {
 }
 
 /**
+ * Встреча не сохранена. Для новой записи нужен новый ключ.
+ */
+export type BookingAttemptAbsentStatus = typeof BookingAttemptAbsentStatus[keyof typeof BookingAttemptAbsentStatus];
+
+
+export const BookingAttemptAbsentStatus = {
+  not_saved: 'not_saved',
+} as const;
+
+/**
+ * Попытка завершена без сохранения встречи.
+ */
+export interface BookingAttemptAbsent {
+  /** Встреча не сохранена. Для новой записи нужен новый ключ. */
+  status: BookingAttemptAbsentStatus;
+}
+
+/**
  * Ключ одной попытки записи.
  */
 export type BookingAttemptId = string;
+
+/**
+ * Попытка создала встречу.
+ */
+export type BookingAttemptSavedStatus = typeof BookingAttemptSavedStatus[keyof typeof BookingAttemptSavedStatus];
+
+
+export const BookingAttemptSavedStatus = {
+  saved: 'saved',
+} as const;
+
+/**
+ * Подтверждение сохранённой встречи.
+ */
+export interface Meeting {
+  /** Уникальный идентификатор встречи. */
+  id: string;
+  /** Идентификатор выбранного типа встречи. */
+  meetingTypeId: string;
+  /** Название выбранного типа встречи на момент записи. */
+  meetingTypeName: string;
+  /** Имя владельца на момент записи. */
+  ownerName: string;
+  /** Имя гостя. */
+  guestName: string;
+  /** Email гостя. */
+  guestEmail: string;
+  /** Момент начала встречи. */
+  startsAt: string;
+  /** Момент окончания встречи. */
+  endsAt: string;
+  /** Именованный часовой пояс владельца на момент записи. */
+  timeZone: string;
+}
+
+/**
+ * Подтверждение сохранённой попытки записи.
+ */
+export interface BookingAttemptSaved {
+  /** Попытка создала встречу. */
+  status: BookingAttemptSavedStatus;
+  /** Исходное подтверждение записи. */
+  meeting: Meeting;
+}
+
+/**
+ * Результат проверки одной попытки записи.
+ */
+export type BookingAttemptResult = BookingAttemptSaved | BookingAttemptAbsent;
 
 /**
  * Результат нельзя подтвердить сейчас.
@@ -121,30 +188,6 @@ export const HealthStatus = {
 export interface Health {
   /** Состояние доступного приложения. */
   status: HealthStatus;
-}
-
-/**
- * Подтверждение сохранённой встречи.
- */
-export interface Meeting {
-  /** Уникальный идентификатор встречи. */
-  id: string;
-  /** Идентификатор выбранного типа встречи. */
-  meetingTypeId: string;
-  /** Название выбранного типа встречи на момент записи. */
-  meetingTypeName: string;
-  /** Имя владельца на момент записи. */
-  ownerName: string;
-  /** Имя гостя. */
-  guestName: string;
-  /** Email гостя. */
-  guestEmail: string;
-  /** Момент начала встречи. */
-  startsAt: string;
-  /** Момент окончания встречи. */
-  endsAt: string;
-  /** Именованный часовой пояс владельца на момент записи. */
-  timeZone: string;
 }
 
 /**

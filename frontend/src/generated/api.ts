@@ -26,9 +26,76 @@ export interface AvailabilityDay {
 }
 
 /**
+ * Встреча не сохранена. Для новой записи нужен новый ключ.
+ */
+export type BookingAttemptAbsentStatus = typeof BookingAttemptAbsentStatus[keyof typeof BookingAttemptAbsentStatus];
+
+
+export const BookingAttemptAbsentStatus = {
+  not_saved: 'not_saved',
+} as const;
+
+/**
+ * Попытка завершена без сохранения встречи.
+ */
+export interface BookingAttemptAbsent {
+  /** Встреча не сохранена. Для новой записи нужен новый ключ. */
+  status: BookingAttemptAbsentStatus;
+}
+
+/**
  * Ключ одной попытки записи.
  */
 export type BookingAttemptId = string;
+
+/**
+ * Попытка создала встречу.
+ */
+export type BookingAttemptSavedStatus = typeof BookingAttemptSavedStatus[keyof typeof BookingAttemptSavedStatus];
+
+
+export const BookingAttemptSavedStatus = {
+  saved: 'saved',
+} as const;
+
+/**
+ * Подтверждение сохранённой встречи.
+ */
+export interface Meeting {
+  /** Уникальный идентификатор встречи. */
+  id: string;
+  /** Идентификатор выбранного типа встречи. */
+  meetingTypeId: string;
+  /** Название выбранного типа встречи на момент записи. */
+  meetingTypeName: string;
+  /** Имя владельца на момент записи. */
+  ownerName: string;
+  /** Имя гостя. */
+  guestName: string;
+  /** Email гостя. */
+  guestEmail: string;
+  /** Момент начала встречи. */
+  startsAt: string;
+  /** Момент окончания встречи. */
+  endsAt: string;
+  /** Именованный часовой пояс владельца на момент записи. */
+  timeZone: string;
+}
+
+/**
+ * Подтверждение сохранённой попытки записи.
+ */
+export interface BookingAttemptSaved {
+  /** Попытка создала встречу. */
+  status: BookingAttemptSavedStatus;
+  /** Исходное подтверждение записи. */
+  meeting: Meeting;
+}
+
+/**
+ * Результат проверки одной попытки записи.
+ */
+export type BookingAttemptResult = BookingAttemptSaved | BookingAttemptAbsent;
 
 /**
  * Результат нельзя подтвердить сейчас.
@@ -121,30 +188,6 @@ export const HealthStatus = {
 export interface Health {
   /** Состояние доступного приложения. */
   status: HealthStatus;
-}
-
-/**
- * Подтверждение сохранённой встречи.
- */
-export interface Meeting {
-  /** Уникальный идентификатор встречи. */
-  id: string;
-  /** Идентификатор выбранного типа встречи. */
-  meetingTypeId: string;
-  /** Название выбранного типа встречи на момент записи. */
-  meetingTypeName: string;
-  /** Имя владельца на момент записи. */
-  ownerName: string;
-  /** Имя гостя. */
-  guestName: string;
-  /** Email гостя. */
-  guestEmail: string;
-  /** Момент начала встречи. */
-  startsAt: string;
-  /** Момент окончания встречи. */
-  endsAt: string;
-  /** Именованный часовой пояс владельца на момент записи. */
-  timeZone: string;
 }
 
 /**
@@ -522,6 +565,61 @@ export const meetingTypesCheckMeetingTypeAttempt = async (attemptId: MeetingType
 
 
 
+export type meetingTypesCheckBookingAttemptResponse200 = {
+  data: BookingAttemptResult
+  status: 200
+}
+
+export type meetingTypesCheckBookingAttemptResponse400 = {
+  data: BookingValidationError
+  status: 400
+}
+
+export type meetingTypesCheckBookingAttemptResponse503 = {
+  data: BookingAttemptUnknown
+  status: 503
+}
+
+export type meetingTypesCheckBookingAttemptResponseSuccess = (meetingTypesCheckBookingAttemptResponse200) & {
+  headers: Headers;
+};
+export type meetingTypesCheckBookingAttemptResponseError = (meetingTypesCheckBookingAttemptResponse400 | meetingTypesCheckBookingAttemptResponse503) & {
+  headers: Headers;
+};
+
+export type meetingTypesCheckBookingAttemptResponse = (meetingTypesCheckBookingAttemptResponseSuccess | meetingTypesCheckBookingAttemptResponseError)
+
+export const getMeetingTypesCheckBookingAttemptUrl = (attemptId: BookingAttemptId,) => {
+
+
+
+
+  return `/api/meeting-types/booking-attempts/${attemptId}/check`
+}
+
+/**
+ * Проверить исход записи. Если встречи нет, проверка окончательно закрывает попытку.
+ */
+export const meetingTypesCheckBookingAttempt = async (attemptId: BookingAttemptId, options?: RequestInit): Promise<meetingTypesCheckBookingAttemptResponse> => {
+
+  const res = await fetch(getMeetingTypesCheckBookingAttemptUrl(attemptId),
+  {
+    ...options,
+    method: 'POST'
+
+
+  }
+)
+
+
+  const body = [204, 205, 304].includes(res.status) ? null : await res.text();
+
+  const data: meetingTypesCheckBookingAttemptResponse['data'] = body ? JSON.parse(body) : {}
+  return { data, status: res.status, headers: res.headers } as meetingTypesCheckBookingAttemptResponse
+}
+
+
+
 export type meetingTypesGetMeetingTypeResponse200 = {
   data: MeetingType
   status: 200
@@ -638,7 +736,7 @@ export type meetingTypesCreateBookingResponse404 = {
 }
 
 export type meetingTypesCreateBookingResponse409 = {
-  data: SlotUnavailable
+  data: SlotUnavailable | BookingNotSaved
   status: 409
 }
 

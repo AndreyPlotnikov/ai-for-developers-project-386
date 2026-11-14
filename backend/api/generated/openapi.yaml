@@ -120,6 +120,40 @@ paths:
                 $ref: '#/components/schemas/MeetingTypeAttemptUnknown'
       tags:
         - Meeting types
+  /api/meeting-types/booking-attempts/{attemptId}/check:
+    post:
+      operationId: MeetingTypes_checkBookingAttempt
+      description: Проверить исход записи. Если встречи нет, проверка окончательно закрывает попытку.
+      parameters:
+        - name: attemptId
+          in: path
+          required: true
+          description: Ключ из исходного запроса на запись.
+          schema:
+            $ref: '#/components/schemas/BookingAttemptId'
+      responses:
+        '200':
+          description: The request has succeeded.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BookingAttemptResult'
+              example:
+                status: not_saved
+        '400':
+          description: The server could not understand the request due to invalid syntax.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BookingValidationError'
+        '503':
+          description: Service unavailable.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BookingAttemptUnknown'
+      tags:
+        - Meeting types
   /api/meeting-types/{id}:
     get:
       operationId: MeetingTypes_getMeetingType
@@ -213,7 +247,9 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/SlotUnavailable'
+                anyOf:
+                  - $ref: '#/components/schemas/SlotUnavailable'
+                  - $ref: '#/components/schemas/BookingNotSaved'
         '503':
           description: Service unavailable.
           content:
@@ -284,11 +320,45 @@ components:
           description: Момент окончания встречи.
           example: '2026-02-02T06:45:00Z'
       description: Доступное время для встречи.
+    BookingAttemptAbsent:
+      type: object
+      required:
+        - status
+      properties:
+        status:
+          type: string
+          enum:
+            - not_saved
+          description: Встреча не сохранена. Для новой записи нужен новый ключ.
+          example: not_saved
+      description: Попытка завершена без сохранения встречи.
     BookingAttemptId:
       type: string
       format: uuid
       description: Ключ одной попытки записи.
       example: 88f6cbf1-5158-4b80-9476-777326aec804
+    BookingAttemptResult:
+      anyOf:
+        - $ref: '#/components/schemas/BookingAttemptSaved'
+        - $ref: '#/components/schemas/BookingAttemptAbsent'
+      description: Результат проверки одной попытки записи.
+    BookingAttemptSaved:
+      type: object
+      required:
+        - status
+        - meeting
+      properties:
+        status:
+          type: string
+          enum:
+            - saved
+          description: Попытка создала встречу.
+          example: saved
+        meeting:
+          allOf:
+            - $ref: '#/components/schemas/Meeting'
+          description: Исходное подтверждение записи.
+      description: Подтверждение сохранённой попытки записи.
     BookingAttemptUnknown:
       type: object
       required:

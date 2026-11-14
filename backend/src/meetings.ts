@@ -1,12 +1,17 @@
 import { randomUUID } from "node:crypto";
 import type { DatabaseSync } from "node:sqlite";
 import type { WorkingCalendar } from "./availability.js";
-import type { BookingInput, Meeting, MeetingTypeAvailability } from "./generated/api.schemas.js";
+import type {
+  BookingAttemptResult,
+  BookingInput,
+  Meeting,
+  MeetingTypeAvailability,
+} from "./generated/api.schemas.js";
 import { MeetingTypes, ownerName } from "./meeting-types.js";
 
 type BookingResult =
   | { status: "saved"; meeting: Meeting }
-  | { status: "not_found" | "slot_unavailable" | "not_saved" | "unknown" };
+  | { status: "not_found" | "slot_unavailable" | "attempt_closed" | "not_saved" | "unknown" };
 
 export class Meetings {
   constructor(
@@ -44,7 +49,8 @@ export class Meetings {
         () => {
           const id = attemptId.toLowerCase();
           const original = this.readAttempt(id);
-          if (original) return { status: "saved", meeting: original };
+          if (original?.status === "saved") return original;
+          if (original) return { status: "attempt_closed" };
           checkedNewAttempt = true;
 
           const meetingType = this.meetingTypes.get(meetingTypeId);
@@ -100,6 +106,18 @@ export class Meetings {
     }
   }
 
+  checkAttempt(attemptId: string): BookingAttemptResult {
+    return this.withWriteLock(() => {
+      const id = attemptId.toLowerCase();
+      const original = this.readAttempt(id);
+      if (original) return original;
+
+      // Close the attempt before reporting that an in-flight POST did not save it.
+      this.database.prepare("INSERT INTO booking_attempts (id) VALUES (?)").run(id);
+      return { status: "not_saved" };
+    });
+  }
+
   freeSlots(durationMinutes: number): MeetingTypeAvailability {
     const availability = this.calendar.list(durationMinutes, this.now());
     const slots = availability.days.flatMap((day) => day.slots);
@@ -123,7 +141,7 @@ export class Meetings {
     return availability;
   }
 
-  private withWriteLock<T>(operation: () => T, checkedNewAttempt: () => boolean): T {
+  private withWriteLock<T>(operation: () => T, checkedNewAttempt?: () => boolean): T {
     // Reserve the write lock before reading attempts or conflicts.
     this.database.exec("BEGIN IMMEDIATE");
     try {
@@ -133,20 +151,24 @@ export class Meetings {
     } catch (error) {
       if (this.database.isTransaction) {
         this.database.exec("ROLLBACK");
-        if (checkedNewAttempt())
+        if (checkedNewAttempt?.())
           throw new BookingRolledBack("Booking write rolled back", { cause: error });
       }
       throw error;
     }
   }
 
-  private readAttempt(id: string): Meeting | undefined {
+  private readAttempt(id: string): BookingAttemptResult | undefined {
     const row = this.database
       .prepare(
-        "SELECT meetings.* FROM booking_attempts JOIN meetings ON meetingId = meetings.id WHERE booking_attempts.id = ?",
+        `SELECT booking_attempts.meetingId, meetings.* FROM booking_attempts
+         LEFT JOIN meetings ON booking_attempts.meetingId = meetings.id
+         WHERE booking_attempts.id = ?`,
       )
       .get(id);
-    return row && readMeeting(row);
+    if (!row) return undefined;
+    if (row.meetingId === null) return { status: "not_saved" };
+    return { status: "saved", meeting: readMeeting(row) };
   }
 }
 

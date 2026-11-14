@@ -1,13 +1,19 @@
 import "./App.css";
+import { useState } from "react";
+import { readBookingAttempt } from "./booking-attempt";
 import { MeetingTypePage, MeetingTypesPage } from "./MeetingTypes";
 import { NewMeetingType } from "./NewMeetingType";
 
 export default function App() {
+  const [attempt] = useState(readBookingAttempt);
   const path = window.location.pathname.replace(/\/$/, "");
   const detail = /^\/book\/([^/]+)$/.exec(path);
   let page = <Home />;
   if (path === "/book") page = <MeetingTypesPage />;
   if (detail) page = <MeetingTypePage id={detail[1]} />;
+  if (attempt && (path === "/book" || detail)) {
+    page = <MeetingTypePage id={attempt.meetingTypeId} initialAttempt={attempt} />;
+  }
   if (path === "/admin/meeting-types") page = <MeetingTypesPage ownerView />;
   if (path === "/admin/meeting-types/new") page = <NewMeetingType />;
 

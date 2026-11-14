@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import type { BookingAttempt } from "./booking-attempt";
 import { BookingCalendar } from "./BookingCalendar";
 import {
   meetingTypesGetMeetingType,
@@ -115,7 +116,18 @@ export function MeetingTypesPage({ ownerView = false }: { ownerView?: boolean })
   );
 }
 
-export function MeetingTypePage({ id }: { id: string }) {
+export function MeetingTypePage({
+  id,
+  initialAttempt,
+}: {
+  id: string;
+  initialAttempt?: BookingAttempt;
+}) {
+  useEffect(() => {
+    if (initialAttempt && window.location.pathname !== meetingTypePath(id)) {
+      window.history.replaceState(null, "", meetingTypePath(id));
+    }
+  }, [id, initialAttempt]);
   const [load] = useState(() => async (signal: AbortSignal) => {
     const response = await meetingTypesGetMeetingType(id, { signal, cache: "no-store" });
     if (response.status === 404) return null;
@@ -136,7 +148,9 @@ export function MeetingTypePage({ id }: { id: string }) {
         <h1>{meetingType.data === null ? "Тип встречи не найден" : "Тип встречи"}</h1>
       )}
       <LoadStatus resource={meetingType} message="Не удалось загрузить тип встречи." />
-      {meetingType.data && <BookingCalendar meetingTypeId={meetingType.data.id} />}
+      {(meetingType.data || initialAttempt) && (
+        <BookingCalendar meetingTypeId={id} initialAttempt={initialAttempt} />
+      )}
     </section>
   );
 }

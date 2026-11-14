@@ -1,16 +1,27 @@
 import { useEffect, useRef, useState, type FormEvent } from "react";
+import {
+  clearBookingAttempt,
+  readBookingAttempt,
+  storeBookingAttempt,
+  type BookingAttempt,
+} from "./booking-attempt";
 import { formatMeetingTime } from "./calendar-time";
-import { meetingTypesCreateBooking, type BookingInput, type Meeting } from "./generated/api";
+import {
+  meetingTypesCheckBookingAttempt,
+  meetingTypesCreateBooking,
+  type BookingInput,
+  type Meeting,
+} from "./generated/api";
 import { MeetingTypesCreateBookingBody } from "./generated/validation";
 
 const fields = ["guestName", "guestEmail"] as const;
 type Field = (typeof fields)[number];
 type Values = Pick<BookingInput, Field>;
 type Errors = Partial<Record<Field | "startsAt", string>>;
-type Attempt = { id: string; input: BookingInput };
 
 export function BookingForm({
   meetingTypeId,
+  initialAttempt,
   startsAt,
   ready,
   onConflict,
@@ -19,6 +30,7 @@ export function BookingForm({
   focusSlots,
 }: {
   meetingTypeId: string;
+  initialAttempt?: BookingAttempt;
   startsAt?: string;
   ready: boolean;
   onConflict: () => void;
@@ -26,13 +38,18 @@ export function BookingForm({
   onLock: (locked: boolean) => void;
   focusSlots: () => void;
 }) {
-  const [values, setValues] = useState<Values>({ guestName: "", guestEmail: "" });
+  const [values, setValues] = useState<Values>(
+    initialAttempt?.values ?? { guestName: "", guestEmail: "" },
+  );
   const [errors, setErrors] = useState<Errors>({});
   const [focus, setFocus] = useState<{ field: Field }>();
-  const [status, setStatus] = useState<"editing" | "saving" | "failed" | "unknown">("editing");
+  const [status, setStatus] = useState<"editing" | "saving" | "failed" | "unknown" | "checking">(
+    initialAttempt ? "unknown" : "editing",
+  );
   const [notice, setNotice] = useState("");
   const [meeting, setMeeting] = useState<Meeting>();
-  const attempt = useRef<Attempt>(undefined);
+  const attempt = useRef(initialAttempt);
+  const checking = useRef(false);
   const form = useRef<HTMLFormElement>(null);
   const submitButton = useRef<HTMLButtonElement>(null);
   const retryButton = useRef<HTMLButtonElement>(null);
@@ -64,29 +81,44 @@ export function BookingForm({
     setErrors((current) => ({ ...current, [field]: error }));
   }
 
-  async function save(current: Attempt) {
+  function finishAttempt() {
+    if (attempt.current) clearBookingAttempt(attempt.current.id);
+    attempt.current = undefined;
+    onLock(false);
+  }
+
+  function confirm(savedMeeting: Meeting) {
+    finishAttempt();
+    setMeeting(savedMeeting);
+    onConfirmed();
+  }
+
+  function chooseAnotherSlot(message: string) {
+    onConflict();
+    focusSlots();
+    setNotice(message);
+    setStatus("editing");
+  }
+
+  async function save(current: BookingAttempt, input: BookingInput) {
     attempt.current = current;
     onLock(true);
     setStatus("saving");
     setNotice("");
     try {
-      const response = await meetingTypesCreateBooking(meetingTypeId, current.input, {
+      const response = await meetingTypesCreateBooking(current.meetingTypeId, input, {
         headers: { "Idempotency-Key": current.id },
       });
       if (response.status === 201) {
-        setMeeting(response.data);
-        onConfirmed();
+        confirm(response.data);
         return;
       }
       if (response.status === 400) {
         showErrors(response.data.fieldErrors ?? {});
         setNotice(response.data.message ?? "");
         setStatus("editing");
-      } else if (response.status === 409 && response.data.code === "slot_unavailable") {
-        onConflict();
-        focusSlots();
-        setNotice(response.data.message);
-        setStatus("editing");
+      } else if (response.status === 409) {
+        chooseAnotherSlot(response.data.message);
       } else if (response.status === 503 && response.data.code === "not_saved") {
         setNotice(response.data.message);
         setStatus("failed");
@@ -97,16 +129,41 @@ export function BookingForm({
         setStatus("unknown");
         return;
       }
-      attempt.current = undefined;
-      onLock(false);
+      finishAttempt();
     } catch {
       setStatus("unknown");
+    }
+  }
+
+  async function checkAttempt() {
+    const current = attempt.current;
+    if (!current || checking.current) return;
+    checking.current = true;
+    setStatus("checking");
+    try {
+      const response = await meetingTypesCheckBookingAttempt(current.id);
+      if (response.status === 200 && response.data.status === "saved") {
+        confirm(response.data.meeting);
+      } else if (response.status === 200 && response.data.status === "not_saved") {
+        finishAttempt();
+        chooseAnotherSlot("Встреча не сохранена. Выберите время и подтвердите запись.");
+      } else {
+        setStatus("unknown");
+      }
+    } catch {
+      setStatus("unknown");
+    } finally {
+      checking.current = false;
     }
   }
 
   function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (attempt.current || !ready) return;
+    if (readBookingAttempt()) {
+      window.location.reload();
+      return;
+    }
     const result = MeetingTypesCreateBookingBody.safeParse({
       startsAt,
       guestName: values.guestName.trim(),
@@ -123,7 +180,19 @@ export function BookingForm({
       return;
     }
     setErrors({});
-    void save({ id: window.crypto.randomUUID(), input: result.data });
+    try {
+      const current = {
+        id: window.crypto.randomUUID(),
+        meetingTypeId,
+        startsAt: result.data.startsAt,
+        values,
+      };
+      storeBookingAttempt(current);
+      void save(current, result.data);
+    } catch {
+      setNotice("Не удалось подготовить сохранение. Повторите попытку.");
+      setStatus("failed");
+    }
   }
 
   if (meeting) {
@@ -152,7 +221,7 @@ export function BookingForm({
     <section className="meeting-panel" aria-labelledby="booking-form-title">
       <h2 id="booking-form-title">Запись на встречу</h2>
       <form ref={form} onSubmit={submit} noValidate>
-        <fieldset disabled={status === "saving" || status === "unknown"}>
+        <fieldset disabled={status === "saving" || status === "unknown" || status === "checking"}>
           {fields.map((field) => (
             <div key={field}>
               <label htmlFor={field}>{field === "guestName" ? "Имя" : "Email"}</label>
@@ -186,18 +255,18 @@ export function BookingForm({
         </fieldset>
         <p className="calendar-status" role="status">
           {status === "saving" && "Сохранение…"}
+          {status === "checking" && "Проверяем результат…"}
         </p>
         <p className="calendar-status" role="alert">
           {status === "unknown" ? "Результат сохранения неизвестен." : notice}
         </p>
-        {status === "unknown" && (
+        {(status === "unknown" || status === "checking") && (
           <button
             ref={retryButton}
             className="primary-button"
             type="button"
-            onClick={() => {
-              if (attempt.current) void save(attempt.current);
-            }}
+            disabled={status === "checking"}
+            onClick={checkAttempt}
           >
             Проверить результат
           </button>

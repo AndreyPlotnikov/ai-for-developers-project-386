@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import type { BookingAttempt } from "./booking-attempt";
 import { BookingForm } from "./BookingForm";
 import { formatCalendarDate, formatSlotTime } from "./calendar-time";
 import {
@@ -14,10 +15,16 @@ type CalendarState = {
   revision: number;
 };
 
-export function BookingCalendar({ meetingTypeId }: { meetingTypeId: string }) {
+export function BookingCalendar({
+  meetingTypeId,
+  initialAttempt,
+}: {
+  meetingTypeId: string;
+  initialAttempt?: BookingAttempt;
+}) {
   const [calendar, setCalendar] = useState<CalendarState>({ status: "loading", revision: 0 });
   const [selectedSlot, setSelectedSlot] = useState<AvailabilitySlot>();
-  const [locked, setLocked] = useState(false);
+  const [locked, setLocked] = useState(!!initialAttempt);
   const [confirmed, setConfirmed] = useState(false);
   const availabilityHeading = useRef<HTMLHeadingElement>(null);
   const { data, selectedDate, status, revision } = calendar;
@@ -142,9 +149,10 @@ export function BookingCalendar({ meetingTypeId }: { meetingTypeId: string }) {
           </>
         )}
       </section>
-      {data && (
+      {(data || initialAttempt) && (
         <BookingForm
           meetingTypeId={meetingTypeId}
+          initialAttempt={initialAttempt}
           startsAt={selectedSlot?.startsAt}
           ready={status === "ready"}
           onConflict={() => refresh()}

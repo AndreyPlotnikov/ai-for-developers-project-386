@@ -266,6 +266,29 @@ model BookingAttemptUnknown {
   message: string;
 }
 
+/** Подтверждение сохранённой попытки записи. */
+model BookingAttemptSaved {
+  /** Попытка создала встречу. */
+  @example("saved")
+  status: "saved";
+
+  /** Исходное подтверждение записи. */
+  meeting: Meeting;
+}
+
+/** Попытка завершена без сохранения встречи. */
+model BookingAttemptAbsent {
+  /** Встреча не сохранена. Для новой записи нужен новый ключ. */
+  @example("not_saved")
+  status: "not_saved";
+}
+
+/** Результат проверки одной попытки записи. */
+union BookingAttemptResult {
+  saved: BookingAttemptSaved,
+  absent: BookingAttemptAbsent,
+}
+
 @tag("Meeting types")
 @route("/api/meeting-types")
 interface MeetingTypes {
@@ -345,6 +368,18 @@ interface MeetingTypes {
     | MeetingTypeAvailability
     | { @statusCode statusCode: 404; @body error: MeetingTypeNotFound; };
 
+  /** Проверить исход записи. Если встречи нет, проверка окончательно закрывает попытку. */
+  @opExample(#{ returnType: #{ status: "not_saved" } })
+  @post
+  @route("/booking-attempts/{attemptId}/check")
+  checkBookingAttempt(
+    /** Ключ из исходного запроса на запись. */
+    @path attemptId: BookingAttemptId,
+  ):
+    | BookingAttemptResult
+    | { @statusCode statusCode: 400; @body error: BookingValidationError; }
+    | { @statusCode statusCode: 503; @body error: BookingAttemptUnknown; };
+
   /** Сохранить запись на встречу или вернуть подтверждение уже сохранённой попытки. */
   @post
   @route("/{id}/bookings")
@@ -361,6 +396,6 @@ interface MeetingTypes {
     | { @statusCode statusCode: 201; @body meeting: Meeting; }
     | { @statusCode statusCode: 400; @body error: BookingValidationError; }
     | { @statusCode statusCode: 404; @body error: MeetingTypeNotFound; }
-    | { @statusCode statusCode: 409; @body error: SlotUnavailable; }
+    | { @statusCode statusCode: 409; @body error: SlotUnavailable | BookingNotSaved; }
     | { @statusCode statusCode: 503; @body error: BookingNotSaved | BookingAttemptUnknown; };
 }
