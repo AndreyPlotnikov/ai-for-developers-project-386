@@ -20,7 +20,6 @@ const factory = createFactory<CalendarEnv>();
 const fields = ["startsAt", "guestName", "guestEmail"] as const;
 const bookingBody = MeetingTypesCreateBookingBody.extend({
   guestName: z.string().trim().pipe(MeetingTypesCreateBookingBody.shape.guestName),
-  guestEmail: z.string().trim().pipe(MeetingTypesCreateBookingBody.shape.guestEmail),
 });
 
 export const meetingTypesCreateBookingHandlers = factory.createHandlers(

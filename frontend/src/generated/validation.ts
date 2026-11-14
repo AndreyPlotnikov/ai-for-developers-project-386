@@ -48,5 +48,5 @@ export const meetingTypesCreateBookingBodyGuestEmailRegExp = new RegExp('^[^@\\s
 export const MeetingTypesCreateBookingBody = zod.object({
   "startsAt": zod.iso.datetime({"offset":true}).describe('Выберите время встречи.'),
   "guestName": zod.string().min(1).max(meetingTypesCreateBookingBodyGuestNameMax).describe('Введите имя длиной от 1 до 100 символов.'),
-  "guestEmail": zod.string().max(meetingTypesCreateBookingBodyGuestEmailMax).regex(meetingTypesCreateBookingBodyGuestEmailRegExp).describe('Введите корректный email длиной до 254 символов.')
+  "guestEmail": zod.string().max(meetingTypesCreateBookingBodyGuestEmailMax).regex(meetingTypesCreateBookingBodyGuestEmailRegExp).describe('Введите корректный email без пробельных символов длиной до 254 символов.')
 }).describe('Поля формы записи.')

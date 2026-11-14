@@ -267,7 +267,7 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/BookingInput'
-        description: Момент начала, имя и email гостя. Пробелы по краям имени и email удаляются.
+        description: Момент начала, имя и email гостя. Пробелы по краям имени удаляются.
   /api/owner/meetings:
     get:
       operationId: listUpcomingMeetings
@@ -416,7 +416,7 @@ components:
           type: string
           maxLength: 254
           pattern: ^[^@\s]+@[^@\s.]+(?:\.[^@\s.]+)+$
-          description: Введите корректный email длиной до 254 символов.
+          description: Введите корректный email без пробельных символов длиной до 254 символов.
           example: a@b.c
       description: Поля формы записи.
     BookingNotSaved:

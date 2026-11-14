@@ -130,7 +130,7 @@ export interface BookingInput {
      */
   guestName: string;
   /**
-     * Введите корректный email длиной до 254 символов.
+     * Введите корректный email без пробельных символов длиной до 254 символов.
      * @maxLength 254
      * @pattern ^[^@\s]+@[^@\s.]+(?:\.[^@\s.]+)+$
      */

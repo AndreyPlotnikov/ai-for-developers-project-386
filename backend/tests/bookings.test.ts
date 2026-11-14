@@ -13,7 +13,7 @@ const options = { environment: {}, now: () => new Date("2026-02-02T06:00:00Z") }
 const input = {
   startsAt: "2026-02-02T06:15:00Z",
   guestName: "  Алекс  ",
-  guestEmail: " a@b.c ",
+  guestEmail: "a@b.c",
 };
 type App = ReturnType<typeof createApp>;
 
@@ -80,6 +80,8 @@ test.each([
   [{ guestEmail: "guest@localhost" }, "guestEmail"],
   [{ guestEmail: "@b.c" }, "guestEmail"],
   [{ guestEmail: "a@b .c" }, "guestEmail"],
+  [{ guestEmail: " a@b.c" }, "guestEmail"],
+  [{ guestEmail: "a@b.c " }, "guestEmail"],
   [{ guestEmail: "a\tb@b.c" }, "guestEmail"],
   [{ guestEmail: `${"a".repeat(251)}@b.c` }, "guestEmail"],
   [{ guestEmail: undefined }, "guestEmail"],
@@ -94,7 +96,7 @@ test.each([
   expect((await book(app, id)).status).toBe(201);
 });
 
-test("accepts guest fields exactly at the trimmed length limits", async () => {
+test("accepts an email and a trimmed name at their length limits", async () => {
   using database = new DatabaseSync(":memory:");
   const app = createApp(database, options);
   const id = await createType(app);
@@ -103,7 +105,7 @@ test("accepts guest fields exactly at the trimmed length limits", async () => {
   const saved = await book(app, id, {
     ...input,
     guestName: ` ${guestName} `,
-    guestEmail: ` ${guestEmail} `,
+    guestEmail,
   });
   expect(saved.status).toBe(201);
   expect(await saved.json()).toMatchObject({ guestName, guestEmail });
