@@ -6,6 +6,26 @@
  * OpenAPI spec version: 0.0.0
  */
 /**
+ * Доступное время для встречи.
+ */
+export interface AvailabilitySlot {
+  /** Момент начала встречи. */
+  startsAt: string;
+  /** Момент окончания встречи. */
+  endsAt: string;
+}
+
+/**
+ * Слоты на календарную дату владельца.
+ */
+export interface AvailabilityDay {
+  /** Дата в часовом поясе владельца. */
+  date: string;
+  /** Свободные слоты в порядке начала. */
+  slots: AvailabilitySlot[];
+}
+
+/**
  * Состояние доступного приложения.
  */
 export type HealthStatus = typeof HealthStatus[keyof typeof HealthStatus];
@@ -46,6 +66,20 @@ export interface MeetingType {
      * @maximum 480
      */
   durationMinutes: number;
+}
+
+/**
+ * Доступность типа встречи на ближайшие 14 календарных дат.
+ */
+export interface MeetingTypeAvailability {
+  /** Именованный часовой пояс владельца. */
+  timeZone: string;
+  /**
+     * Календарные даты, включая даты без доступного времени.
+     * @minItems 14
+     * @maxItems 14
+     */
+  days: AvailabilityDay[];
 }
 
 /**

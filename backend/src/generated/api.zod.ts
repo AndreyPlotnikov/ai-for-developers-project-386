@@ -79,6 +79,27 @@ export const MeetingTypesGetMeetingTypeResponse = zod.object({
 }).describe('Данные типа встречи.')
 
 
+export const MeetingTypesGetAvailabilityParams = zod.object({
+  "id": zod.string().describe('Идентификатор типа встречи.')
+})
+
+export const meetingTypesGetAvailabilityResponseDaysMin = 14;
+export const meetingTypesGetAvailabilityResponseDaysMax = 14;
+
+
+
+export const MeetingTypesGetAvailabilityResponse = zod.object({
+  "timeZone": zod.string().describe('Именованный часовой пояс владельца.'),
+  "days": zod.array(zod.object({
+  "date": zod.iso.date().describe('Дата в часовом поясе владельца.'),
+  "slots": zod.array(zod.object({
+  "startsAt": zod.iso.datetime({"offset":true}).describe('Момент начала встречи.'),
+  "endsAt": zod.iso.datetime({"offset":true}).describe('Момент окончания встречи.')
+}).describe('Доступное время для встречи.')).describe('Свободные слоты в порядке начала.')
+}).describe('Слоты на календарную дату владельца.')).min(meetingTypesGetAvailabilityResponseDaysMin).max(meetingTypesGetAvailabilityResponseDaysMax).describe('Календарные даты, включая даты без доступного времени.')
+}).describe('Доступность типа встречи на ближайшие 14 календарных дат.')
+
+
 export const HealthResponse = zod.object({
   "status": zod.enum(['ok']).describe('Состояние доступного приложения.')
 }).describe('Состояние приложения.')

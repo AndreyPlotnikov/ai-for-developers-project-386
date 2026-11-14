@@ -18,4 +18,9 @@ export type MeetingTypesGetMeetingTypeContext<E extends Env = any> = Context<E, 
  }, }, out: { param: {
  id: string,
  }, } }>
+export type MeetingTypesGetAvailabilityContext<E extends Env = any> = Context<E, '/api/meeting-types/:id/availability', { in: { param: {
+ id: string,
+ }, }, out: { param: {
+ id: string,
+ }, } }>
 export type HealthContext<E extends Env = any> = Context<E, '/health'>

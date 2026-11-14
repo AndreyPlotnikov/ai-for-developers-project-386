@@ -309,3 +309,54 @@ button:not(:disabled, [aria-disabled="true"]) {
 .load-status p:empty {
   margin: 0;
 }
+
+.booking-calendar {
+  max-width: 880px;
+}
+
+.booking-calendar h2 {
+  margin-top: 0;
+}
+
+.calendar-dates,
+.calendar-slots {
+  display: grid;
+  gap: 8px;
+  padding: 0;
+  list-style: none;
+}
+
+.calendar-dates {
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 6.5rem), 1fr));
+}
+
+.calendar-slots {
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 5rem), 1fr));
+}
+
+.booking-calendar li > button {
+  width: 100%;
+  height: 100%;
+  min-height: 40px;
+}
+
+.calendar-date small {
+  display: block;
+  margin-top: 4px;
+  color: inherit;
+}
+
+.booking-calendar button[aria-pressed="true"] {
+  border-color: #204f91;
+  background: #204f91;
+  color: white;
+}
+
+.booking-calendar button:disabled {
+  color: #425b7a;
+  background: #e2e8f1;
+}
+
+.calendar-status:empty {
+  margin: 0;
+}

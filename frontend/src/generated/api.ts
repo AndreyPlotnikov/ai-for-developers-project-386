@@ -6,6 +6,26 @@
  * OpenAPI spec version: 0.0.0
  */
 /**
+ * Доступное время для встречи.
+ */
+export interface AvailabilitySlot {
+  /** Момент начала встречи. */
+  startsAt: string;
+  /** Момент окончания встречи. */
+  endsAt: string;
+}
+
+/**
+ * Слоты на календарную дату владельца.
+ */
+export interface AvailabilityDay {
+  /** Дата в часовом поясе владельца. */
+  date: string;
+  /** Свободные слоты в порядке начала. */
+  slots: AvailabilitySlot[];
+}
+
+/**
  * Состояние доступного приложения.
  */
 export type HealthStatus = typeof HealthStatus[keyof typeof HealthStatus];
@@ -46,6 +66,20 @@ export interface MeetingType {
      * @maximum 480
      */
   durationMinutes: number;
+}
+
+/**
+ * Доступность типа встречи на ближайшие 14 календарных дат.
+ */
+export interface MeetingTypeAvailability {
+  /** Именованный часовой пояс владельца. */
+  timeZone: string;
+  /**
+     * Календарные даты, включая даты без доступного времени.
+     * @minItems 14
+     * @maxItems 14
+     */
+  days: AvailabilityDay[];
 }
 
 /**
@@ -280,6 +314,56 @@ export const meetingTypesGetMeetingType = async (id: string, options?: RequestIn
 
   const data: meetingTypesGetMeetingTypeResponse['data'] = body ? JSON.parse(body) : {}
   return { data, status: res.status, headers: res.headers } as meetingTypesGetMeetingTypeResponse
+}
+
+
+
+export type meetingTypesGetAvailabilityResponse200 = {
+  data: MeetingTypeAvailability
+  status: 200
+}
+
+export type meetingTypesGetAvailabilityResponse404 = {
+  data: MeetingTypeNotFound
+  status: 404
+}
+
+export type meetingTypesGetAvailabilityResponseSuccess = (meetingTypesGetAvailabilityResponse200) & {
+  headers: Headers;
+};
+export type meetingTypesGetAvailabilityResponseError = (meetingTypesGetAvailabilityResponse404) & {
+  headers: Headers;
+};
+
+export type meetingTypesGetAvailabilityResponse = (meetingTypesGetAvailabilityResponseSuccess | meetingTypesGetAvailabilityResponseError)
+
+export const getMeetingTypesGetAvailabilityUrl = (id: string,) => {
+
+
+
+
+  return `/api/meeting-types/${id}/availability`
+}
+
+/**
+ * Получить ближайшие даты и доступные слоты типа встречи.
+ */
+export const meetingTypesGetAvailability = async (id: string, options?: RequestInit): Promise<meetingTypesGetAvailabilityResponse> => {
+
+  const res = await fetch(getMeetingTypesGetAvailabilityUrl(id),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+)
+
+
+  const body = [204, 205, 304].includes(res.status) ? null : await res.text();
+
+  const data: meetingTypesGetAvailabilityResponse['data'] = body ? JSON.parse(body) : {}
+  return { data, status: res.status, headers: res.headers } as meetingTypesGetAvailabilityResponse
 }
 
 

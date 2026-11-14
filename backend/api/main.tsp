@@ -88,6 +88,40 @@ model MeetingTypeSaveError {
   message: string;
 }
 
+/** Доступное время для встречи. */
+model AvailabilitySlot {
+  /** Момент начала встречи. */
+  @example(utcDateTime.fromISO("2026-02-02T06:15:00Z"))
+  startsAt: utcDateTime;
+
+  /** Момент окончания встречи. */
+  @example(utcDateTime.fromISO("2026-02-02T06:45:00Z"))
+  endsAt: utcDateTime;
+}
+
+/** Слоты на календарную дату владельца. */
+model AvailabilityDay {
+  /** Дата в часовом поясе владельца. */
+  @example(plainDate.fromISO("2026-02-02"))
+  date: plainDate;
+
+  /** Свободные слоты в порядке начала. */
+  @example(#[])
+  slots: AvailabilitySlot[];
+}
+
+/** Доступность типа встречи на ближайшие 14 календарных дат. */
+model MeetingTypeAvailability {
+  /** Именованный часовой пояс владельца. */
+  @example("Europe/Moscow")
+  timeZone: string;
+
+  /** Календарные даты, включая даты без доступного времени. */
+  @minItems(14)
+  @maxItems(14)
+  days: AvailabilityDay[];
+}
+
 @tag("Meeting types")
 @route("/api/meeting-types")
 interface MeetingTypes {
@@ -127,5 +161,14 @@ interface MeetingTypes {
     @path id: string,
   ):
     | MeetingType
+    | { @statusCode statusCode: 404; @body error: MeetingTypeNotFound; };
+  /** Получить ближайшие даты и доступные слоты типа встречи. */
+  @get
+  @route("/{id}/availability")
+  getAvailability(
+    /** Идентификатор типа встречи. */
+    @path id: string,
+  ):
+    | MeetingTypeAvailability
     | { @statusCode statusCode: 404; @body error: MeetingTypeNotFound; };
 }

@@ -91,6 +91,32 @@ paths:
                 $ref: '#/components/schemas/MeetingTypeNotFound'
       tags:
         - Meeting types
+  /api/meeting-types/{id}/availability:
+    get:
+      operationId: MeetingTypes_getAvailability
+      description: Получить ближайшие даты и доступные слоты типа встречи.
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Идентификатор типа встречи.
+          schema:
+            type: string
+      responses:
+        '200':
+          description: The request has succeeded.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MeetingTypeAvailability'
+        '404':
+          description: The server cannot find the requested resource.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MeetingTypeNotFound'
+      tags:
+        - Meeting types
   /health:
     get:
       operationId: health
@@ -109,6 +135,41 @@ paths:
         - Health
 components:
   schemas:
+    AvailabilityDay:
+      type: object
+      required:
+        - date
+        - slots
+      properties:
+        date:
+          type: string
+          format: date
+          description: Дата в часовом поясе владельца.
+          example: '2026-02-02'
+        slots:
+          type: array
+          items:
+            $ref: '#/components/schemas/AvailabilitySlot'
+          description: Свободные слоты в порядке начала.
+          example: []
+      description: Слоты на календарную дату владельца.
+    AvailabilitySlot:
+      type: object
+      required:
+        - startsAt
+        - endsAt
+      properties:
+        startsAt:
+          type: string
+          format: date-time
+          description: Момент начала встречи.
+          example: '2026-02-02T06:15:00Z'
+        endsAt:
+          type: string
+          format: date-time
+          description: Момент окончания встречи.
+          example: '2026-02-02T06:45:00Z'
+      description: Доступное время для встречи.
     Health:
       type: object
       required:
@@ -153,6 +214,24 @@ components:
           description: Введите длительность в минутах целым числом от 5 до 480.
           example: 30
       description: Данные типа встречи.
+    MeetingTypeAvailability:
+      type: object
+      required:
+        - timeZone
+        - days
+      properties:
+        timeZone:
+          type: string
+          description: Именованный часовой пояс владельца.
+          example: Europe/Moscow
+        days:
+          type: array
+          items:
+            $ref: '#/components/schemas/AvailabilityDay'
+          minItems: 14
+          maxItems: 14
+          description: Календарные даты, включая даты без доступного времени.
+      description: Доступность типа встречи на ближайшие 14 календарных дат.
     MeetingTypeCatalog:
       type: object
       required:

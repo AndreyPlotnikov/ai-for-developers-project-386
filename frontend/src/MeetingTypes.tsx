@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { BookingCalendar } from "./BookingCalendar";
 import {
   meetingTypesGetMeetingType,
   meetingTypesListMeetingTypes,
@@ -135,6 +136,7 @@ export function MeetingTypePage({ id }: { id: string }) {
         <h1>{meetingType.data === null ? "Тип встречи не найден" : "Тип встречи"}</h1>
       )}
       <LoadStatus resource={meetingType} message="Не удалось загрузить тип встречи." />
+      {meetingType.data && <BookingCalendar meetingTypeId={meetingType.data.id} />}
     </section>
   );
 }
