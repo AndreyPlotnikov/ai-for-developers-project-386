@@ -3,11 +3,10 @@ import { expect, test } from "@playwright/test";
 
 test.use({ baseURL: process.env.E2E_BASE_URL });
 
-test("the owner opens the empty list, sees a new booking on reload, and retries a failed refresh", async ({
+test("the owner creates a meeting type and sees the guest's booking on reload", async ({
   page,
   browser,
   baseURL,
-  request,
 }) => {
   await page.setViewportSize({ width: 640, height: 450 });
   await page.goto("/");
@@ -17,22 +16,32 @@ test("the owner opens the empty list, sees a new booking on reload, and retries 
   await expect(page.getByText("Предстоящих встреч нет")).toBeVisible();
 
   const meetingTypeName = "Встреча для списка владельца";
-  const created = await request.post("/api/meeting-types", {
-    data: { name: meetingTypeName, durationMinutes: 30 },
-  });
-  expect(created.status()).toBe(201);
-  const { id } = await created.json();
-  const guest = await browser.newPage({ baseURL });
+  const owner = await browser.newPage({ baseURL, viewport: { width: 640, height: 450 } });
+  let directLink: string;
   try {
-    await guest.goto(`/book/${id}`);
+    await owner.goto("/admin/meeting-types/new");
+    await expect(owner.locator("html")).toHaveJSProperty("scrollWidth", 640);
+    await owner.getByRole("textbox", { name: "Название" }).fill(meetingTypeName);
+    await owner.getByRole("textbox", { name: "Длительность (минуты)" }).fill("30");
+    await owner.getByRole("button", { name: "Создать", exact: true }).press("Enter");
+    await expect(owner.getByRole("heading", { name: "Тип встречи создан" })).toBeFocused();
+    directLink = await owner.getByRole("textbox", { name: "Прямая ссылка" }).inputValue();
+  } finally {
+    await owner.close();
+  }
+  const guest = await browser.newPage({ viewport: { width: 640, height: 450 } });
+  try {
+    await guest.goto(directLink);
+    await expect(guest.getByRole("heading", { name: meetingTypeName })).toBeVisible();
     await guest
       .getByRole("button", { name: /^\d{2}:\d{2}$/ })
       .first()
       .press("Enter");
+    await expect(guest.locator("html")).toHaveJSProperty("scrollWidth", 640);
     await guest.getByRole("textbox", { name: "Имя" }).fill("Алекс");
     await guest.getByRole("textbox", { name: "Email" }).fill("guest@example.com");
     await guest.getByRole("button", { name: "Подтвердить запись" }).press("Enter");
-    await expect(guest.getByRole("heading", { name: "Запись подтверждена" })).toBeVisible();
+    await expect(guest.getByRole("heading", { name: "Запись подтверждена" })).toBeFocused();
   } finally {
     await guest.close();
   }
@@ -40,6 +49,7 @@ test("the owner opens the empty list, sees a new booking on reload, and retries 
   await page.reload();
   const meeting = page.getByRole("listitem").filter({ hasText: meetingTypeName });
   await expect(meeting.getByRole("heading", { name: meetingTypeName })).toBeVisible();
+  await expect(page.locator("html")).toHaveJSProperty("scrollWidth", 640);
   await expect(
     meeting.getByText(/\d{1,2} [а-я]+ \d{4} г\., \d{2}:\d{2}–\d{2}:\d{2} \(Europe\/Moscow\)/),
   ).toBeVisible();

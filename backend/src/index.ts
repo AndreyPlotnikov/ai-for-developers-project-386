@@ -1,4 +1,5 @@
 import { serve } from "@hono/node-server";
+import { serveStatic } from "@hono/node-server/serve-static";
 import { DatabaseSync } from "node:sqlite";
 import { createApp } from "./app.js";
 
@@ -13,6 +14,19 @@ const database = new DatabaseSync(process.env.DATABASE_PATH ?? "call-calendar.sq
   timeout: 5000,
 });
 const app = createApp(database);
+const frontendDist = process.env.FRONTEND_DIST;
+if (frontendDist) {
+  const pages = [
+    "/",
+    "/book",
+    "/book/:id",
+    "/admin/meeting-types",
+    "/admin/meeting-types/new",
+    "/admin/meetings",
+  ];
+  app.on(["GET", "HEAD"], "/assets/*", serveStatic({ root: frontendDist }));
+  app.on(["GET", "HEAD"], pages, serveStatic({ root: frontendDist, path: "index.html" }));
+}
 
 const server = serve(
   {
