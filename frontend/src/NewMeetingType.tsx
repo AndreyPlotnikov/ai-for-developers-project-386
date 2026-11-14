@@ -1,5 +1,10 @@
 import { useEffect, useRef, useState, type FormEvent } from "react";
-import { meetingTypesCreateMeetingType, type MeetingType } from "./generated/api";
+import { z } from "zod";
+import {
+  meetingTypesCheckMeetingTypeAttempt,
+  meetingTypesCreateMeetingType,
+  type MeetingType,
+} from "./generated/api";
 import { MeetingTypesCreateMeetingTypeBody } from "./generated/validation";
 import { meetingTypePath } from "./MeetingTypes";
 
@@ -9,6 +14,21 @@ type Values = Record<Field, string>;
 type Errors = Partial<Values>;
 
 const initialValues: Values = { name: "", description: "", durationMinutes: "" };
+const attemptStorageKey = "calendar.meeting-type-attempt";
+const storedAttempt = z.object({
+  id: z.uuid(),
+  values: z.object({ name: z.string(), description: z.string(), durationMinutes: z.string() }),
+});
+
+function readAttempt() {
+  try {
+    const stored = window.sessionStorage.getItem(attemptStorageKey);
+    return stored ? storedAttempt.safeParse(JSON.parse(stored)).data : undefined;
+  } catch {
+    return undefined;
+  }
+}
+
 function fieldMessage(field: Field) {
   return MeetingTypesCreateMeetingTypeBody.shape[field].description ?? "Неверное значение";
 }
@@ -24,21 +44,27 @@ function validate(values: Values) {
 }
 
 export function NewMeetingType() {
-  const [values, setValues] = useState(initialValues);
+  const [initialAttempt] = useState(readAttempt);
+  const [attemptId, setAttemptId] = useState(initialAttempt?.id);
+  const [values, setValues] = useState(initialAttempt?.values ?? initialValues);
   const [errors, setErrors] = useState<Errors>({});
   const [focus, setFocus] = useState<{ field: Field }>();
-  const [status, setStatus] = useState<"editing" | "saving" | "failed" | "unknown">("editing");
+  const [status, setStatus] = useState<"editing" | "saving" | "failed" | "unknown" | "checking">(
+    attemptId ? "unknown" : "editing",
+  );
   const [saveError, setSaveError] = useState("");
   const [created, setCreated] = useState<MeetingType>();
   const successHeading = useRef<HTMLHeadingElement>(null);
   const form = useRef<HTMLFormElement>(null);
   const submitButton = useRef<HTMLButtonElement>(null);
+  const checkButton = useRef<HTMLButtonElement>(null);
 
   useEffect(() => {
     if (focus) form.current?.querySelector<HTMLElement>(`#${focus.field}`)?.focus();
   }, [focus]);
 
   useEffect(() => {
+    if (status === "unknown") checkButton.current?.focus();
     if (status === "failed" || saveError) submitButton.current?.focus();
   }, [status, saveError]);
 
@@ -76,7 +102,7 @@ export function NewMeetingType() {
 
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    if (status === "saving" || status === "unknown") return;
+    if (attemptId) return;
 
     const result = validate(values);
     if (!result.success) {
@@ -92,16 +118,61 @@ export function NewMeetingType() {
 
     setErrors({});
     setSaveError("");
+    let id: string;
+    try {
+      id = window.crypto.randomUUID();
+      window.sessionStorage.setItem(attemptStorageKey, JSON.stringify({ id, values }));
+    } catch {
+      setSaveError("Не удалось подготовить сохранение. Повторите попытку.");
+      return;
+    }
+
+    setAttemptId(id);
     setStatus("saving");
     try {
-      const response = await meetingTypesCreateMeetingType(result.data);
+      const response = await meetingTypesCreateMeetingType(result.data, {
+        headers: { "Idempotency-Key": id },
+      });
       if (response.status === 201) {
+        clearAttempt();
         setCreated(response.data);
       } else if (response.status === 400 && response.data.fieldErrors) {
+        clearAttempt();
         showErrors(response.data.fieldErrors);
-        if (response.data.message) setSaveError(response.data.message);
+        if (response.data.message && !fields.some((field) => response.data.fieldErrors[field])) {
+          setSaveError(response.data.message);
+        }
         setStatus("editing");
-      } else if (response.status === 503 && response.data.code === "not_saved") {
+      } else if (
+        (response.status === 409 || response.status === 503) &&
+        response.data.code === "not_saved"
+      ) {
+        clearAttempt();
+        setStatus("failed");
+      } else {
+        setStatus("unknown");
+      }
+    } catch {
+      setStatus("unknown");
+    }
+  }
+
+  function clearAttempt() {
+    window.sessionStorage.removeItem(attemptStorageKey);
+    setAttemptId(undefined);
+  }
+
+  async function checkAttempt() {
+    if (!attemptId || status !== "unknown") return;
+
+    setStatus("checking");
+    try {
+      const response = await meetingTypesCheckMeetingTypeAttempt(attemptId);
+      if (response.status === 200 && response.data.status === "saved") {
+        clearAttempt();
+        setCreated(response.data.meetingType);
+      } else if (response.status === 200 && response.data.status === "not_saved") {
+        clearAttempt();
         setStatus("failed");
       } else {
         setStatus("unknown");
@@ -143,7 +214,7 @@ export function NewMeetingType() {
           <>
             <h1>Создать тип встречи</h1>
             <form ref={form} onSubmit={submit} noValidate>
-              <fieldset disabled={status === "saving" || status === "unknown"}>
+              <fieldset disabled={!!attemptId}>
                 <label htmlFor="name">Название</label>
                 <input {...inputProps("name")} required />
                 {fieldError("name")}
@@ -162,11 +233,18 @@ export function NewMeetingType() {
               {status === "failed" && (
                 <p role="alert">Не удалось сохранить тип встречи. Повторите сохранение.</p>
               )}
-              {status === "unknown" && (
-                <p role="alert">
-                  Результат сохранения неизвестен. Проверьте{" "}
-                  <a href="/admin/meeting-types">список типов встреч</a>.
-                </p>
+              {status === "checking" && <p role="status">Проверяем результат…</p>}
+              {status === "unknown" && <p role="alert">Результат сохранения неизвестен.</p>}
+              {(status === "unknown" || status === "checking") && (
+                <button
+                  ref={checkButton}
+                  className="primary-button"
+                  type="button"
+                  disabled={status === "checking"}
+                  onClick={checkAttempt}
+                >
+                  Проверить результат
+                </button>
               )}
             </form>
           </>

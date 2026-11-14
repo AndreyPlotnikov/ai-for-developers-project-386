@@ -69,6 +69,74 @@ export interface MeetingType {
 }
 
 /**
+ * Тип не был сохранён. Повторная отправка требует нового идентификатора.
+ */
+export type MeetingTypeAttemptAbsentStatus = typeof MeetingTypeAttemptAbsentStatus[keyof typeof MeetingTypeAttemptAbsentStatus];
+
+
+export const MeetingTypeAttemptAbsentStatus = {
+  not_saved: 'not_saved',
+} as const;
+
+/**
+ * Попытка завершена без создания типа встречи.
+ */
+export interface MeetingTypeAttemptAbsent {
+  /** Тип не был сохранён. Повторная отправка требует нового идентификатора. */
+  status: MeetingTypeAttemptAbsentStatus;
+}
+
+/**
+ * Уникальный идентификатор одной попытки создания.
+ */
+export type MeetingTypeAttemptId = string;
+
+/**
+ * Попытка создала тип встречи.
+ */
+export type MeetingTypeAttemptSavedStatus = typeof MeetingTypeAttemptSavedStatus[keyof typeof MeetingTypeAttemptSavedStatus];
+
+
+export const MeetingTypeAttemptSavedStatus = {
+  saved: 'saved',
+} as const;
+
+/**
+ * Тип встречи, сохранённый этой попыткой.
+ */
+export interface MeetingTypeAttemptSaved {
+  /** Попытка создала тип встречи. */
+  status: MeetingTypeAttemptSavedStatus;
+  /** Уже сохранённый тип встречи. */
+  meetingType: MeetingType;
+}
+
+/**
+ * Результат проверки одной попытки создания.
+ */
+export type MeetingTypeAttemptResult = MeetingTypeAttemptSaved | MeetingTypeAttemptAbsent;
+
+/**
+ * Результат нельзя подтвердить сейчас.
+ */
+export type MeetingTypeAttemptUnknownCode = typeof MeetingTypeAttemptUnknownCode[keyof typeof MeetingTypeAttemptUnknownCode];
+
+
+export const MeetingTypeAttemptUnknownCode = {
+  unknown: 'unknown',
+} as const;
+
+/**
+ * Исход попытки пока неизвестен.
+ */
+export interface MeetingTypeAttemptUnknown {
+  /** Результат нельзя подтвердить сейчас. */
+  code: MeetingTypeAttemptUnknownCode;
+  /** Сообщение для владельца. */
+  message: string;
+}
+
+/**
  * Доступность типа встречи на ближайшие 14 календарных дат.
  */
 export interface MeetingTypeAvailability {
@@ -209,15 +277,20 @@ export type meetingTypesCreateMeetingTypeResponse400 = {
   status: 400
 }
 
-export type meetingTypesCreateMeetingTypeResponse503 = {
+export type meetingTypesCreateMeetingTypeResponse409 = {
   data: MeetingTypeSaveError
+  status: 409
+}
+
+export type meetingTypesCreateMeetingTypeResponse503 = {
+  data: MeetingTypeSaveError | MeetingTypeAttemptUnknown
   status: 503
 }
 
 export type meetingTypesCreateMeetingTypeResponseSuccess = (meetingTypesCreateMeetingTypeResponse201) & {
   headers: Headers;
 };
-export type meetingTypesCreateMeetingTypeResponseError = (meetingTypesCreateMeetingTypeResponse400 | meetingTypesCreateMeetingTypeResponse503) & {
+export type meetingTypesCreateMeetingTypeResponseError = (meetingTypesCreateMeetingTypeResponse400 | meetingTypesCreateMeetingTypeResponse409 | meetingTypesCreateMeetingTypeResponse503) & {
   headers: Headers;
 };
 
@@ -264,6 +337,61 @@ const res = await fetch(getMeetingTypesCreateMeetingTypeUrl(),
 
   const data: meetingTypesCreateMeetingTypeResponse['data'] = body ? JSON.parse(body) : {}
   return { data, status: res.status, headers: res.headers } as meetingTypesCreateMeetingTypeResponse
+}
+
+
+
+export type meetingTypesCheckMeetingTypeAttemptResponse200 = {
+  data: MeetingTypeAttemptResult
+  status: 200
+}
+
+export type meetingTypesCheckMeetingTypeAttemptResponse400 = {
+  data: MeetingTypeValidationError
+  status: 400
+}
+
+export type meetingTypesCheckMeetingTypeAttemptResponse503 = {
+  data: MeetingTypeAttemptUnknown
+  status: 503
+}
+
+export type meetingTypesCheckMeetingTypeAttemptResponseSuccess = (meetingTypesCheckMeetingTypeAttemptResponse200) & {
+  headers: Headers;
+};
+export type meetingTypesCheckMeetingTypeAttemptResponseError = (meetingTypesCheckMeetingTypeAttemptResponse400 | meetingTypesCheckMeetingTypeAttemptResponse503) & {
+  headers: Headers;
+};
+
+export type meetingTypesCheckMeetingTypeAttemptResponse = (meetingTypesCheckMeetingTypeAttemptResponseSuccess | meetingTypesCheckMeetingTypeAttemptResponseError)
+
+export const getMeetingTypesCheckMeetingTypeAttemptUrl = (attemptId: MeetingTypeAttemptId,) => {
+
+
+
+
+  return `/api/meeting-types/attempts/${attemptId}/check`
+}
+
+/**
+ * Проверить исход попытки. Если тип не сохранён, проверка окончательно закрывает эту попытку.
+ */
+export const meetingTypesCheckMeetingTypeAttempt = async (attemptId: MeetingTypeAttemptId, options?: RequestInit): Promise<meetingTypesCheckMeetingTypeAttemptResponse> => {
+
+  const res = await fetch(getMeetingTypesCheckMeetingTypeAttemptUrl(attemptId),
+  {
+    ...options,
+    method: 'POST'
+
+
+  }
+)
+
+
+  const body = [204, 205, 304].includes(res.status) ? null : await res.text();
+
+  const data: meetingTypesCheckMeetingTypeAttemptResponse['data'] = body ? JSON.parse(body) : {}
+  return { data, status: res.status, headers: res.headers } as meetingTypesCheckMeetingTypeAttemptResponse
 }
 
 

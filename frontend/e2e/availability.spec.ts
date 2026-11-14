@@ -49,11 +49,13 @@ test("a guest can select empty dates with the keyboard and learns when all dates
   await page.goto(paths.browser);
   const calendar = page.getByRole("region", { name: "Доступное время" });
   await expect(calendar.getByText("Часовой пояс владельца: Europe/Moscow")).toBeVisible();
-  const day2 = calendar.getByRole("button", { name: /^2 февраля/ });
+  const day2 = calendar.getByRole("button", { name: /(?:^|, )2 февраля/ });
   await expect(day2).toHaveAttribute("aria-pressed", "true");
   await expect(calendar.getByRole("button", { name: "09:00", exact: true })).toBeEnabled();
 
-  const emptyDay = calendar.getByRole("button", { name: /^3 февраля.*нет свободного времени/ });
+  const emptyDay = calendar.getByRole("button", {
+    name: /(?:^|, )3 февраля.*нет свободного времени/,
+  });
   await day2.focus();
   await page.keyboard.press("Tab");
   await expect(emptyDay).toBeFocused();
@@ -91,7 +93,7 @@ test("retry retains stale dates and reselects when the chosen date leaves the wi
 
   fail = false;
   await calendar.getByRole("button", { name: "Повторить" }).press("Enter");
-  const day2 = calendar.getByRole("button", { name: /^2 февраля/ });
+  const day2 = calendar.getByRole("button", { name: /(?:^|, )2 февраля/ });
   const time = calendar.getByRole("button", { name: "09:00", exact: true });
   await expect(time).toBeEnabled();
 
@@ -111,7 +113,7 @@ test("retry retains stale dates and reselects when the chosen date leaves the wi
   availability = dates(3, new Map([[3, nextSlots]]));
   await day2.click();
   await expect(day2).toBeHidden();
-  await expect(calendar.getByRole("button", { name: /^3 февраля/ })).toHaveAttribute(
+  await expect(calendar.getByRole("button", { name: /(?:^|, )3 февраля/ })).toHaveAttribute(
     "aria-pressed",
     "true",
   );

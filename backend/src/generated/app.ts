@@ -8,6 +8,7 @@
 import { Hono } from 'hono';
 import { meetingTypesListMeetingTypesHandlers } from '../handlers/meetingTypesListMeetingTypes.js';
 import { meetingTypesCreateMeetingTypeHandlers } from '../handlers/meetingTypesCreateMeetingType.js';
+import { meetingTypesCheckMeetingTypeAttemptHandlers } from '../handlers/meetingTypesCheckMeetingTypeAttempt.js';
 import { meetingTypesGetMeetingTypeHandlers } from '../handlers/meetingTypesGetMeetingType.js';
 import { meetingTypesGetAvailabilityHandlers } from '../handlers/meetingTypesGetAvailability.js';
 import { healthHandlers } from '../handlers/health.js';
@@ -15,6 +16,7 @@ import { healthHandlers } from '../handlers/health.js';
 const app = new Hono()
   .get('/api/meeting-types', ...meetingTypesListMeetingTypesHandlers)
   .post('/api/meeting-types', ...meetingTypesCreateMeetingTypeHandlers)
+  .post('/api/meeting-types/attempts/:attemptId/check', ...meetingTypesCheckMeetingTypeAttemptHandlers)
   .get('/api/meeting-types/:id', ...meetingTypesGetMeetingTypeHandlers)
   .get('/api/meeting-types/:id/availability', ...meetingTypesGetAvailabilityHandlers)
   .get('/health', ...healthHandlers);

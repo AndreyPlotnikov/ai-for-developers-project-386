@@ -133,3 +133,78 @@ test("returns a JSON validation error for a malformed request body", async () =>
   expect(response.status).toBe(400);
   expect(await response.json()).toMatchObject({ fieldErrors: {}, message: expect.any(String) });
 });
+
+test("recovers the same created type through HTTP after the application restarts", async () => {
+  using directory = mkdtempDisposableSync(join(tmpdir(), "call-calendar-"));
+  const path = join(directory.path, "calendar.sqlite");
+  const attemptId = "88f6cbf1-5158-4b80-9476-777326aec804";
+  const request = {
+    method: "POST",
+    headers: { "Content-Type": "application/json", "Idempotency-Key": attemptId },
+    body: JSON.stringify({ name: "Консультация", durationMinutes: 30 }),
+  };
+
+  async function createType() {
+    using database = new DatabaseSync(path);
+    const app = createApp(database);
+    const created = await app.request("/api/meeting-types", request);
+    expect(created.status).toBe(201);
+    return created.json();
+  }
+
+  const meetingType = await createType();
+  using database = new DatabaseSync(path);
+  const app = createApp(database);
+  const recovered = await app.request(`/api/meeting-types/attempts/${attemptId}/check`, {
+    method: "POST",
+  });
+  expect(recovered.status).toBe(200);
+  expect(await recovered.json()).toEqual({ status: "saved", meetingType });
+
+  const replay = await app.request("/api/meeting-types", request);
+  expect(replay.status).toBe(201);
+  expect(await replay.json()).toEqual(meetingType);
+  expect(await (await app.request("/api/meeting-types")).json()).toEqual({
+    meetingTypes: [meetingType],
+  });
+});
+
+test("a confirmed missing attempt cannot create a type through a delayed submission", async () => {
+  using directory = mkdtempDisposableSync(join(tmpdir(), "call-calendar-"));
+  const path = join(directory.path, "calendar.sqlite");
+  const attemptId = "266220a0-052c-4bd1-ab96-cb45e9280dbc";
+  const checkUrl = `/api/meeting-types/attempts/${attemptId}/check`;
+
+  {
+    using database = new DatabaseSync(path);
+    const app = createApp(database);
+    const result = await app.request(checkUrl, { method: "POST" });
+    expect(result.status).toBe(200);
+    expect(await result.json()).toEqual({ status: "not_saved" });
+  }
+
+  using database = new DatabaseSync(path);
+  const app = createApp(database);
+  const request = {
+    method: "POST",
+    headers: { "Content-Type": "application/json", "Idempotency-Key": attemptId },
+    body: JSON.stringify({ name: "Встреча", durationMinutes: 30 }),
+  };
+  const delayed = await app.request("/api/meeting-types", request);
+  expect(delayed.status).toBe(409);
+  expect(await delayed.json()).toMatchObject({ code: "not_saved" });
+  expect(await (await app.request("/api/meeting-types")).json()).toEqual({ meetingTypes: [] });
+  expect(await (await app.request(checkUrl, { method: "POST" })).json()).toEqual({
+    status: "not_saved",
+  });
+
+  const newAttemptId = "1ad11474-b0a8-43a6-8f6f-c20a53db9e80";
+  const resubmitted = await app.request("/api/meeting-types", {
+    ...request,
+    headers: {
+      ...request.headers,
+      "Idempotency-Key": newAttemptId,
+    },
+  });
+  expect(resubmitted.status).toBe(201);
+});

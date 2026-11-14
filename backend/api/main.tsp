@@ -122,6 +122,45 @@ model MeetingTypeAvailability {
   days: AvailabilityDay[];
 }
 
+/** Уникальный идентификатор одной попытки создания. */
+@format("uuid")
+@example("88f6cbf1-5158-4b80-9476-777326aec804")
+scalar MeetingTypeAttemptId extends string;
+
+/** Исход попытки пока неизвестен. */
+model MeetingTypeAttemptUnknown {
+  /** Результат нельзя подтвердить сейчас. */
+  @example("unknown")
+  code: "unknown";
+
+  /** Сообщение для владельца. */
+  @example("Результат сохранения неизвестен")
+  message: string;
+}
+
+/** Результат проверки одной попытки создания. */
+union MeetingTypeAttemptResult {
+  saved: MeetingTypeAttemptSaved,
+  absent: MeetingTypeAttemptAbsent,
+}
+
+/** Тип встречи, сохранённый этой попыткой. */
+model MeetingTypeAttemptSaved {
+  /** Попытка создала тип встречи. */
+  @example("saved")
+  status: "saved";
+
+  /** Уже сохранённый тип встречи. */
+  meetingType: MeetingType;
+}
+
+/** Попытка завершена без создания типа встречи. */
+model MeetingTypeAttemptAbsent {
+  /** Тип не был сохранён. Повторная отправка требует нового идентификатора. */
+  @example("not_saved")
+  status: "not_saved";
+}
+
 @tag("Meeting types")
 @route("/api/meeting-types")
 interface MeetingTypes {
@@ -144,14 +183,42 @@ interface MeetingTypes {
       error: #{ fieldErrors: #{ durationMinutes: "Введите целое число от 5 до 480" } },
     },
   })
+  @opExample(#{
+    returnType: #{
+      statusCode: 409,
+      error: #{ code: "not_saved", message: "Попытка завершена без сохранения типа встречи" },
+    },
+  })
+  @opExample(#{
+    returnType: #{
+      statusCode: 503,
+      error: #{ code: "unknown", message: "Результат сохранения неизвестен" },
+    },
+  })
   @post
   createMeetingType(
     /** Поля формы создания типа встречи. */
     @body input: MeetingTypeInput,
+
+    /** Ключ попытки. Повтор с тем же ключом возвращает результат этой попытки. */
+    @header("Idempotency-Key") attemptId?: MeetingTypeAttemptId,
   ):
     | { @statusCode statusCode: 201; @body meetingType: MeetingType; }
     | { @statusCode statusCode: 400; @body error: MeetingTypeValidationError; }
-    | { @statusCode statusCode: 503; @body error: MeetingTypeSaveError; };
+    | { @statusCode statusCode: 409; @body error: MeetingTypeSaveError; }
+    | { @statusCode statusCode: 503; @body error: MeetingTypeSaveError | MeetingTypeAttemptUnknown; };
+
+  /** Проверить исход попытки. Если тип не сохранён, проверка окончательно закрывает эту попытку. */
+  @opExample(#{ returnType: #{ status: "not_saved" } })
+  @post
+  @route("/attempts/{attemptId}/check")
+  checkMeetingTypeAttempt(
+    /** Ключ из исходного запроса на создание. */
+    @path attemptId: MeetingTypeAttemptId,
+  ):
+    | MeetingTypeAttemptResult
+    | { @statusCode statusCode: 400; @body error: MeetingTypeValidationError; }
+    | { @statusCode statusCode: 503; @body error: MeetingTypeAttemptUnknown; };
 
   /** Получить тип встречи по идентификатору. */
   @get
@@ -162,6 +229,7 @@ interface MeetingTypes {
   ):
     | MeetingType
     | { @statusCode statusCode: 404; @body error: MeetingTypeNotFound; };
+
   /** Получить ближайшие даты и доступные слоты типа встречи. */
   @get
   @route("/{id}/availability")

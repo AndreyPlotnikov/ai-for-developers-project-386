@@ -8,11 +8,17 @@
 import type { Context, Env } from 'hono';
 
 import type {
-MeetingTypeInput
+MeetingTypeAttemptId,
+  MeetingTypeInput
 } from './api.schemas.js';
 
 export type MeetingTypesListMeetingTypesContext<E extends Env = any> = Context<E, '/api/meeting-types'>
 export type MeetingTypesCreateMeetingTypeContext<E extends Env = any> = Context<E, '/api/meeting-types', { in: { json: MeetingTypeInput, }, out: { json: MeetingTypeInput, } }>
+export type MeetingTypesCheckMeetingTypeAttemptContext<E extends Env = any> = Context<E, '/api/meeting-types/attempts/:attemptId/check', { in: { param: {
+ attemptId: MeetingTypeAttemptId,
+ }, }, out: { param: {
+ attemptId: MeetingTypeAttemptId,
+ }, } }>
 export type MeetingTypesGetMeetingTypeContext<E extends Env = any> = Context<E, '/api/meeting-types/:id', { in: { param: {
  id: string,
  }, }, out: { param: {
