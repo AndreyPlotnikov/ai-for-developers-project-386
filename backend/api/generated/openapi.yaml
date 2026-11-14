@@ -26,7 +26,13 @@ paths:
     post:
       operationId: MeetingTypes_createMeetingType
       description: Сохранить новый тип встречи и вернуть данные для прямой ссылки.
-      parameters: []
+      parameters:
+        - name: Idempotency-Key
+          in: header
+          required: false
+          description: Ключ попытки. Повтор с тем же ключом возвращает результат этой попытки.
+          schema:
+            $ref: '#/components/schemas/MeetingTypeAttemptId'
       responses:
         '201':
           description: The request has succeeded and a new resource has been created as a result.
@@ -47,12 +53,26 @@ paths:
               example:
                 fieldErrors:
                   durationMinutes: Введите целое число от 5 до 480
+        '409':
+          description: The request conflicts with the current state of the server.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MeetingTypeSaveError'
+              example:
+                code: not_saved
+                message: Попытка завершена без сохранения типа встречи
         '503':
           description: Service unavailable.
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/MeetingTypeSaveError'
+                anyOf:
+                  - $ref: '#/components/schemas/MeetingTypeSaveError'
+                  - $ref: '#/components/schemas/MeetingTypeAttemptUnknown'
+              example:
+                code: unknown
+                message: Результат сохранения неизвестен
       tags:
         - Meeting types
       requestBody:
@@ -65,6 +85,40 @@ paths:
               name: Консультация
               durationMinutes: 30
         description: Поля формы создания типа встречи.
+  /api/meeting-types/attempts/{attemptId}/check:
+    post:
+      operationId: MeetingTypes_checkMeetingTypeAttempt
+      description: Проверить исход попытки. Если тип не сохранён, проверка окончательно закрывает эту попытку.
+      parameters:
+        - name: attemptId
+          in: path
+          required: true
+          description: Ключ из исходного запроса на создание.
+          schema:
+            $ref: '#/components/schemas/MeetingTypeAttemptId'
+      responses:
+        '200':
+          description: The request has succeeded.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MeetingTypeAttemptResult'
+              example:
+                status: not_saved
+        '400':
+          description: The server could not understand the request due to invalid syntax.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MeetingTypeValidationError'
+        '503':
+          description: Service unavailable.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MeetingTypeAttemptUnknown'
+      tags:
+        - Meeting types
   /api/meeting-types/{id}:
     get:
       operationId: MeetingTypes_getMeetingType
@@ -153,6 +207,62 @@ components:
           description: Введите длительность в минутах целым числом от 5 до 480.
           example: 30
       description: Данные типа встречи.
+    MeetingTypeAttemptAbsent:
+      type: object
+      required:
+        - status
+      properties:
+        status:
+          type: string
+          enum:
+            - not_saved
+          description: Тип не был сохранён. Повторная отправка требует нового идентификатора.
+          example: not_saved
+      description: Попытка завершена без создания типа встречи.
+    MeetingTypeAttemptId:
+      type: string
+      format: uuid
+      description: Уникальный идентификатор одной попытки создания.
+      example: 88f6cbf1-5158-4b80-9476-777326aec804
+    MeetingTypeAttemptResult:
+      anyOf:
+        - $ref: '#/components/schemas/MeetingTypeAttemptSaved'
+        - $ref: '#/components/schemas/MeetingTypeAttemptAbsent'
+      description: Результат проверки одной попытки создания.
+    MeetingTypeAttemptSaved:
+      type: object
+      required:
+        - status
+        - meetingType
+      properties:
+        status:
+          type: string
+          enum:
+            - saved
+          description: Попытка создала тип встречи.
+          example: saved
+        meetingType:
+          allOf:
+            - $ref: '#/components/schemas/MeetingType'
+          description: Уже сохранённый тип встречи.
+      description: Тип встречи, сохранённый этой попыткой.
+    MeetingTypeAttemptUnknown:
+      type: object
+      required:
+        - code
+        - message
+      properties:
+        code:
+          type: string
+          enum:
+            - unknown
+          description: Результат нельзя подтвердить сейчас.
+          example: unknown
+        message:
+          type: string
+          description: Сообщение для владельца.
+          example: Результат сохранения неизвестен
+      description: Исход попытки пока неизвестен.
     MeetingTypeCatalog:
       type: object
       required:

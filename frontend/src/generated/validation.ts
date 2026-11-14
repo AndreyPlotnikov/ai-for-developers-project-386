@@ -10,6 +10,10 @@ import * as zod from 'zod';
 /**
  * Сохранить новый тип встречи и вернуть данные для прямой ссылки.
  */
+export const MeetingTypesCreateMeetingTypeHeader = zod.object({
+  "Idempotency-Key": zod.uuid().optional().describe('Ключ попытки. Повтор с тем же ключом возвращает результат этой попытки.')
+})
+
 export const meetingTypesCreateMeetingTypeBodyNameMax = 100;
 
 export const meetingTypesCreateMeetingTypeBodyDescriptionMax = 1000;

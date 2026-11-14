@@ -9,8 +9,10 @@ import { createFactory } from "hono/factory";
 import { z } from "zod";
 import { zValidator } from "../generated/api.validator.js";
 import type { MeetingTypesCreateMeetingTypeContext } from "../generated/api.context.js";
-import type { MeetingType } from "../generated/api.schemas.js";
-import { MeetingTypesCreateMeetingTypeBody } from "../generated/api.zod.js";
+import {
+  MeetingTypesCreateMeetingTypeBody,
+  MeetingTypesCreateMeetingTypeHeader,
+} from "../generated/api.zod.js";
 import type { MeetingTypeEnv } from "../meeting-types.js";
 
 const factory = createFactory<MeetingTypeEnv>();
@@ -31,13 +33,27 @@ export const meetingTypesCreateMeetingTypeHandlers = factory.createHandlers(
     return c.json({ fieldErrors }, 400);
   }),
   async (c: MeetingTypesCreateMeetingTypeContext<MeetingTypeEnv>) => {
-    let meetingType: MeetingType;
+    const headers = MeetingTypesCreateMeetingTypeHeader.safeParse({
+      "Idempotency-Key": c.req.header("Idempotency-Key"),
+    });
+    if (!headers.success) {
+      return c.json({ fieldErrors: {}, message: "Некорректный ключ попытки" }, 400);
+    }
+
+    const attemptId = headers.data["Idempotency-Key"];
     try {
-      meetingType = c.var.meetingTypes.create(c.req.valid("json"));
+      const meetingType = c.var.meetingTypes.create(c.req.valid("json"), attemptId);
+      return meetingType
+        ? c.json(meetingType, 201)
+        : c.json(
+            { code: "not_saved", message: "Попытка завершена без сохранения типа встречи" },
+            409,
+          );
     } catch (error) {
       console.error("Could not save meeting type", error);
-      return c.json({ code: "not_saved", message: "Не удалось сохранить тип встречи" }, 503);
+      return attemptId
+        ? c.json({ code: "unknown", message: "Результат сохранения неизвестен" }, 503)
+        : c.json({ code: "not_saved", message: "Не удалось сохранить тип встречи" }, 503);
     }
-    return c.json(meetingType, 201);
   },
 );

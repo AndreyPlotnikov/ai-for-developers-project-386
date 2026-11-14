@@ -49,6 +49,74 @@ export interface MeetingType {
 }
 
 /**
+ * Тип не был сохранён. Повторная отправка требует нового идентификатора.
+ */
+export type MeetingTypeAttemptAbsentStatus = typeof MeetingTypeAttemptAbsentStatus[keyof typeof MeetingTypeAttemptAbsentStatus];
+
+
+export const MeetingTypeAttemptAbsentStatus = {
+  not_saved: 'not_saved',
+} as const;
+
+/**
+ * Попытка завершена без создания типа встречи.
+ */
+export interface MeetingTypeAttemptAbsent {
+  /** Тип не был сохранён. Повторная отправка требует нового идентификатора. */
+  status: MeetingTypeAttemptAbsentStatus;
+}
+
+/**
+ * Уникальный идентификатор одной попытки создания.
+ */
+export type MeetingTypeAttemptId = string;
+
+/**
+ * Попытка создала тип встречи.
+ */
+export type MeetingTypeAttemptSavedStatus = typeof MeetingTypeAttemptSavedStatus[keyof typeof MeetingTypeAttemptSavedStatus];
+
+
+export const MeetingTypeAttemptSavedStatus = {
+  saved: 'saved',
+} as const;
+
+/**
+ * Тип встречи, сохранённый этой попыткой.
+ */
+export interface MeetingTypeAttemptSaved {
+  /** Попытка создала тип встречи. */
+  status: MeetingTypeAttemptSavedStatus;
+  /** Уже сохранённый тип встречи. */
+  meetingType: MeetingType;
+}
+
+/**
+ * Результат проверки одной попытки создания.
+ */
+export type MeetingTypeAttemptResult = MeetingTypeAttemptSaved | MeetingTypeAttemptAbsent;
+
+/**
+ * Результат нельзя подтвердить сейчас.
+ */
+export type MeetingTypeAttemptUnknownCode = typeof MeetingTypeAttemptUnknownCode[keyof typeof MeetingTypeAttemptUnknownCode];
+
+
+export const MeetingTypeAttemptUnknownCode = {
+  unknown: 'unknown',
+} as const;
+
+/**
+ * Исход попытки пока неизвестен.
+ */
+export interface MeetingTypeAttemptUnknown {
+  /** Результат нельзя подтвердить сейчас. */
+  code: MeetingTypeAttemptUnknownCode;
+  /** Сообщение для владельца. */
+  message: string;
+}
+
+/**
  * Каталог типов встреч.
  */
 export interface MeetingTypeCatalog {

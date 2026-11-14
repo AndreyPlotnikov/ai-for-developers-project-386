@@ -26,6 +26,10 @@ export const MeetingTypesListMeetingTypesResponse = zod.object({
 }).describe('Каталог типов встреч.')
 
 
+export const MeetingTypesCreateMeetingTypeHeader = zod.object({
+  "Idempotency-Key": zod.uuid().optional().describe('Ключ попытки. Повтор с тем же ключом возвращает результат этой попытки.')
+})
+
 export const meetingTypesCreateMeetingTypeBodyNameMax = 100;
 
 export const meetingTypesCreateMeetingTypeBodyDescriptionMax = 1000;
@@ -56,6 +60,32 @@ export const MeetingTypesCreateMeetingTypeResponse = zod.object({
   "description": zod.string().max(meetingTypesCreateMeetingTypeResponseDescriptionMax).optional().describe('Введите описание обычным текстом длиной до 1000 символов.'),
   "durationMinutes": zod.int().min(meetingTypesCreateMeetingTypeResponseDurationMinutesMin).max(meetingTypesCreateMeetingTypeResponseDurationMinutesMax).describe('Введите длительность в минутах целым числом от 5 до 480.')
 }).describe('Данные типа встречи.')
+
+
+export const MeetingTypesCheckMeetingTypeAttemptParams = zod.object({
+  "attemptId": zod.uuid().describe('Ключ из исходного запроса на создание.')
+})
+
+export const meetingTypesCheckMeetingTypeAttemptResponseOneMeetingTypeOneNameMax = 100;
+
+export const meetingTypesCheckMeetingTypeAttemptResponseOneMeetingTypeOneDescriptionMax = 1000;
+
+export const meetingTypesCheckMeetingTypeAttemptResponseOneMeetingTypeOneDurationMinutesMin = 5;
+export const meetingTypesCheckMeetingTypeAttemptResponseOneMeetingTypeOneDurationMinutesMax = 480;
+
+
+
+export const MeetingTypesCheckMeetingTypeAttemptResponse = zod.union([zod.object({
+  "status": zod.enum(['saved']).describe('Попытка создала тип встречи.'),
+  "meetingType": zod.object({
+  "id": zod.string().describe('Уникальный идентификатор для прямой ссылки.'),
+  "name": zod.string().min(1).max(meetingTypesCheckMeetingTypeAttemptResponseOneMeetingTypeOneNameMax).describe('Введите название длиной от 1 до 100 символов без учёта пробелов по краям.'),
+  "description": zod.string().max(meetingTypesCheckMeetingTypeAttemptResponseOneMeetingTypeOneDescriptionMax).optional().describe('Введите описание обычным текстом длиной до 1000 символов.'),
+  "durationMinutes": zod.int().min(meetingTypesCheckMeetingTypeAttemptResponseOneMeetingTypeOneDurationMinutesMin).max(meetingTypesCheckMeetingTypeAttemptResponseOneMeetingTypeOneDurationMinutesMax).describe('Введите длительность в минутах целым числом от 5 до 480.')
+}).describe('Данные типа встречи.').describe('Уже сохранённый тип встречи.')
+}).describe('Тип встречи, сохранённый этой попыткой.'),zod.object({
+  "status": zod.enum(['not_saved']).describe('Тип не был сохранён. Повторная отправка требует нового идентификатора.')
+}).describe('Попытка завершена без создания типа встречи.')]).describe('Результат проверки одной попытки создания.')
 
 
 export const MeetingTypesGetMeetingTypeParams = zod.object({

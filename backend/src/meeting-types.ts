@@ -1,6 +1,10 @@
 import { randomUUID } from "node:crypto";
 import type { DatabaseSync } from "node:sqlite";
-import type { MeetingType, MeetingTypeInput } from "./generated/api.schemas.js";
+import type {
+  MeetingType,
+  MeetingTypeAttemptResult,
+  MeetingTypeInput,
+} from "./generated/api.schemas.js";
 
 export class MeetingTypes {
   constructor(private readonly database: DatabaseSync) {
@@ -10,11 +14,66 @@ export class MeetingTypes {
         name TEXT NOT NULL,
         description TEXT,
         durationMinutes INTEGER NOT NULL
-      ) STRICT
+      ) STRICT;
+
+      CREATE TABLE IF NOT EXISTS meeting_type_attempts (
+        id TEXT PRIMARY KEY,
+        meetingTypeId TEXT REFERENCES meeting_types(id)
+      ) STRICT;
     `);
   }
 
-  create(input: MeetingTypeInput): MeetingType {
+  create(input: MeetingTypeInput, attemptId?: string): MeetingType | undefined {
+    if (attemptId === undefined) return this.insert(input);
+
+    return this.withAttempt(attemptId, (id, existing) => {
+      if (existing) return existing.status === "saved" ? existing.meetingType : undefined;
+      const meetingType = this.insert(input);
+      this.database
+        .prepare("INSERT INTO meeting_type_attempts (id, meetingTypeId) VALUES (?, ?)")
+        .run(id, meetingType.id);
+      return meetingType;
+    });
+  }
+
+  checkAttempt(attemptId: string): MeetingTypeAttemptResult {
+    return this.withAttempt(attemptId, (id, existing) => {
+      if (existing) return existing;
+      // Close the attempt before declaring it absent, even if its POST is still in flight.
+      this.database.prepare("INSERT INTO meeting_type_attempts (id) VALUES (?)").run(id);
+      return { status: "not_saved" };
+    });
+  }
+
+  private withAttempt<T>(
+    attemptId: string,
+    resolve: (id: string, result: MeetingTypeAttemptResult | undefined) => T,
+  ): T {
+    this.database.exec("BEGIN IMMEDIATE");
+    try {
+      const id = attemptId.toLowerCase();
+      const result = resolve(id, this.getAttempt(id));
+      this.database.exec("COMMIT");
+      return result;
+    } catch (error) {
+      if (this.database.isTransaction) this.database.exec("ROLLBACK");
+      throw error;
+    }
+  }
+
+  private getAttempt(id: string): MeetingTypeAttemptResult | undefined {
+    const row = this.database
+      .prepare("SELECT meetingTypeId FROM meeting_type_attempts WHERE id = ?")
+      .get(id);
+    if (!row) return undefined;
+    if (row.meetingTypeId === null) return { status: "not_saved" };
+
+    const meetingType = typeof row.meetingTypeId === "string" && this.get(row.meetingTypeId);
+    if (!meetingType) throw new Error("Invalid stored meeting type attempt");
+    return { status: "saved", meetingType };
+  }
+
+  private insert(input: MeetingTypeInput): MeetingType {
     const meetingType = { ...input, name: input.name.trim(), id: randomUUID() };
     this.database
       .prepare(
