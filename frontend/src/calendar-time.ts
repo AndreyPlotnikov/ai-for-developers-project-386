@@ -1,7 +1,7 @@
 const dateLabel = new Intl.DateTimeFormat("ru-RU", {
   weekday: "short",
   day: "numeric",
-  month: "short",
+  month: "long",
   timeZone: "UTC",
 });
 const fullDateLabel = new Intl.DateTimeFormat("ru-RU", {

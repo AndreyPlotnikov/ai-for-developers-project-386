@@ -54,7 +54,7 @@ test("a guest can select empty dates with the keyboard and learns when all dates
   await expect(calendar.getByRole("button", { name: "09:00", exact: true })).toBeEnabled();
 
   const emptyDay = calendar.getByRole("button", {
-    name: /(?:^|, )3 февраля.*нет свободного времени/,
+    name: /(?:^|, )3 февраля.*нет времени/i,
   });
   await day2.focus();
   await page.keyboard.press("Tab");

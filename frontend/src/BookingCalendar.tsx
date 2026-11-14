@@ -92,7 +92,6 @@ export function BookingCalendar({ meetingTypeId }: { meetingTypeId: string }) {
                   className="secondary-button calendar-date"
                   type="button"
                   aria-pressed={date === selectedDate}
-                  aria-label={`${formatCalendarDate(date, true)}${slots.length ? "" : ", нет свободного времени"}`}
                   onClick={() => refresh(date)}
                 >
                   {formatCalendarDate(date)}
